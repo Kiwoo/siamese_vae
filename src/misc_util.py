@@ -36,7 +36,20 @@ def load_image(dir_name, img_names):
             print header("Error-1")
 
     return images[0:len(images)/2], images[len(images)/2:]
-    
+
+def load_single_img(dir_name, img_name):
+    images = []
+    name = img_name
+    img_file_path = os.path.join(dir_name, name)
+    im = Image.open(img_file_path)
+    im_arr = np.array(im)
+    if im_arr.size == 64*64:
+        im_arr = np.expand_dims(im_arr, axis = 2)
+        images.append(im_arr)
+    else:
+        print header("Error-1")
+
+    return images
 
 
 def next_batch(arr, arr2, index, slice_size, debug=False):

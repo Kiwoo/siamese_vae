@@ -15,7 +15,7 @@ class mymodel(object):
 	def _init(self, img_shape, latent_dim):
 		sequence_length = None
 
-		disentangle_feat_sz = 5
+		disentangle_feat_sz = 4
 		entangle_feat_sz = latent_dim - disentangle_feat_sz
 
 		img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
@@ -61,15 +61,75 @@ class mymodel(object):
 
 		# [testing <- ]
 
-		sh_mu1 = mu1[:, 0:entangle_feat_sz]
-		sh_logvar1 = logvar1[:, 0:entangle_feat_sz]
+		sh_mu1_1 = mu1[:, 0:-2]
+		sh_logvar1_1 = logvar1[:, 0:-2]
+		sh_mu1_2 = mu2[:, 0:-2]
+		sh_logvar1_2 = logvar2[:, 0:-2]
 
-		sh_mu2 = mu2[:, 0:entangle_feat_sz]
-		sh_logvar2 = logvar2[:, 0:entangle_feat_sz]
+		sh_mu2_1 = mu1[:, 0:-3]
+		sh_logvar2_1 = logvar1[:, 0:-3]
+		sh_mu2_2 = mu2[:, 0:-3]
+		sh_logvar2_2 = logvar2[:, 0:-3]
 
-		self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(sh_logvar1 - sh_logvar2), axis = 1)
-		# print np.shape(tf.square(sh_mu1 - sh_mu2))
-		# print np.shape(tf.exp(logvar1))
+		sh_mu3_1 = mu1[:, 0:-4]
+		sh_logvar3_1 = logvar1[:, 0:-4]
+		sh_mu3_2 = mu2[:, 0:-4]
+		sh_logvar3_2 = logvar2[:, 0:-4]
+
+		sh_mu4_1 = mu1[:, 0:-5]
+		sh_logvar4_1 = logvar1[:, 0:-5]
+		sh_mu4_2 = mu2[:, 0:-5]
+		sh_logvar4_2 = logvar2[:, 0:-5]
+
+		sh_mu5_1 = mu1[:, 0:-6]
+		sh_logvar5_1 = logvar1[:, 0:-6]
+		sh_mu5_2 = mu2[:, 0:-6]
+		sh_logvar5_2 = logvar2[:, 0:-6]
+
+		sh_mu6_1 = mu1[:, 0:-7]
+		sh_logvar6_1 = logvar1[:, 0:-7]
+		sh_mu6_2 = mu2[:, 0:-7]
+		sh_logvar6_2 = logvar2[:, 0:-7]
+
+		sh_mu7_1 = mu1[:, 0:-8]
+		sh_logvar7_1 = logvar1[:, 0:-8]
+		sh_mu7_2 = mu2[:, 0:-8]
+		sh_logvar7_2 = logvar2[:, 0:-8]
+
+		sh_mu8_1 = mu1[:, 0:-9]
+		sh_logvar8_1 = logvar1[:, 0:-9]
+		sh_mu8_2 = mu2[:, 0:-9]
+		sh_logvar8_2 = logvar2[:, 0:-9]												
+
+
+		self.siam_loss1 = U.sum(tf.square(sh_mu1_1 - sh_mu1_2), axis = 1) + U.sum(tf.square(sh_logvar1_1 - sh_logvar1_2), axis = 1)
+		self.siam_loss2 = U.sum(tf.square(sh_mu2_1 - sh_mu2_2), axis = 1) + U.sum(tf.square(sh_logvar2_1 - sh_logvar2_2), axis = 1)
+		self.siam_loss3 = U.sum(tf.square(sh_mu3_1 - sh_mu3_2), axis = 1) + U.sum(tf.square(sh_logvar3_1 - sh_logvar3_2), axis = 1)
+		self.siam_loss4 = U.sum(tf.square(sh_mu4_1 - sh_mu4_2), axis = 1) + U.sum(tf.square(sh_logvar4_1 - sh_logvar4_2), axis = 1)
+		self.siam_loss5 = U.sum(tf.square(sh_mu5_1 - sh_mu5_2), axis = 1) + U.sum(tf.square(sh_logvar5_1 - sh_logvar5_2), axis = 1)
+		self.siam_loss6 = U.sum(tf.square(sh_mu6_1 - sh_mu6_2), axis = 1) + U.sum(tf.square(sh_logvar6_1 - sh_logvar6_2), axis = 1)
+		self.siam_loss7 = U.sum(tf.square(sh_mu7_1 - sh_mu7_2), axis = 1) + U.sum(tf.square(sh_logvar7_1 - sh_logvar7_2), axis = 1)
+		self.siam_loss8 = U.sum(tf.square(sh_mu8_1 - sh_mu8_2), axis = 1) + U.sum(tf.square(sh_logvar8_1 - sh_logvar8_2), axis = 1)
+
+
+		cond1 = U.get_placeholder(name="cond1", dtype=tf.bool, shape=())
+		cond2 = U.get_placeholder(name="cond2", dtype=tf.bool, shape=())
+		cond3 = U.get_placeholder(name="cond3", dtype=tf.bool, shape=())
+		cond4 = U.get_placeholder(name="cond4", dtype=tf.bool, shape=())
+		cond5 = U.get_placeholder(name="cond5", dtype=tf.bool, shape=())
+		cond6 = U.get_placeholder(name="cond6", dtype=tf.bool, shape=())
+		cond7 = U.get_placeholder(name="cond7", dtype=tf.bool, shape=())
+
+		# If cond1 true, then we get self.siam_loss1, else then we search again with cond2.
+		# If cond2 true, then we get self.siam_loss2, else then we search again with cond3 and so on.
+
+		siam_loss7 = U.switch(cond7, self.siam_loss7, self.siam_loss8)
+		siam_loss6 = U.switch(cond6, self.siam_loss6, siam_loss7)
+		siam_loss5 = U.switch(cond5, self.siam_loss5, siam_loss3)
+		siam_loss4 = U.switch(cond4, self.siam_loss4, siam_loss3)
+		siam_loss3 = U.switch(cond3, self.siam_loss3, siam_loss3)
+		siam_loss2 = U.switch(cond2, self.siam_loss2, siam_loss3)
+		self.siam_loss = U.switch(cond1, self.siam_loss1, siam_loss2)
 
 
 		self.kl_loss1 = 0.5 * U.sum((tf.exp(logvar1) + mu1**2 - 1. - logvar1), axis = 1)
@@ -81,7 +141,7 @@ class mymodel(object):
 		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])		
 
 
-		self.vaeloss = 5000.0*self.siam_loss + 30000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
+		self.vaeloss = 10000.0*self.siam_loss + 30000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
 

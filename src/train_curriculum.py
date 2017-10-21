@@ -12,9 +12,17 @@ from PIL import Image
 import numpy as np
 import random
 
-def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 128):
+def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 256):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
+
+	cond1 = U.get_placeholder_cached(name="cond1")
+	cond2 = U.get_placeholder_cached(name="cond2")
+	cond3 = U.get_placeholder_cached(name="cond3")
+	cond4 = U.get_placeholder_cached(name="cond4")
+	cond5 = U.get_placeholder_cached(name="cond5")
+	cond6 = U.get_placeholder_cached(name="cond6")
+	cond7 = U.get_placeholder_cached(name="cond7")
 
 
 	# Testing
@@ -47,7 +55,6 @@ def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_chec
 
 	weight_loss = [1, 1, 1]
 
-	compute_losses = U.function([img1, img2], vae_loss)
 	lr = 0.0001
 	optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
 
@@ -58,7 +65,7 @@ def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_chec
 	#[v for v in all_var_list if v.name.split("/")[1].startswith("proj1") or v.name.split("/")[1].startswith("unproj1")]
 	optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
 	merged = tf.summary.merge_all()
-	train = U.function([img1, img2], 
+	train = U.function([img1, img2, cond1, cond2, cond3, cond4, cond5, cond6, cond7], 
 						[losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
 	get_reconst_img = U.function([img1, img2], [model.reconst1, model.reconst2, latent_z1_tp, latent_z2_tp])
 	get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])

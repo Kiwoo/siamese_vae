@@ -7,6 +7,7 @@ import sys
 from misc_util import set_global_seeds, read_dataset, get_cur_dir, header
 from models import mymodel
 from train import train_net
+from test import test_net
 import argparse
 
 
@@ -26,6 +27,7 @@ def main():
     header("Load model")
     mynet = mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = 32)
     train_net(model = mynet, img_dir = img_dir)
+    # test_net(model = mynet, img_dir = img_dir)
 
 if __name__ == '__main__':
     main()
