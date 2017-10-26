@@ -12,7 +12,7 @@ from PIL import Image
 import numpy as np
 import random
 
-def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 128):
+def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 50000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
 
@@ -35,12 +35,17 @@ def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_chec
 			U.mean(model.reconst_error2), 
 			]
 
+	siam_normal = losses[1]/entangled_feat		
+	siam_max = U.mean(model.max_siam_loss)
+
 	tf.summary.scalar('Total Loss', losses[0])
 	tf.summary.scalar('Siam Loss', losses[1])
 	tf.summary.scalar('kl1_loss', losses[2])
 	tf.summary.scalar('kl2_loss', losses[3])
 	tf.summary.scalar('reconst_err1', losses[4])
 	tf.summary.scalar('reconst_err2', losses[5])
+	tf.summary.scalar('Siam Normal', siam_normal)
+	tf.summary.scalar('Siam Max', siam_max)
 
 	decoded_img = [model.reconst1, model.reconst2]
 
@@ -69,9 +74,9 @@ def train_net(model, img_dir, max_iter = 1300000, check_every_n = 500, loss_chec
 	# test_reconst = U.function([reconst_tp], [model.reconst_test])
 
 	cur_dir = get_cur_dir()
-	chk_save_dir = os.path.join(cur_dir, "chkfiles")
-	log_save_dir = os.path.join(cur_dir, "log")
-	validate_img_saver_dir = os.path.join(cur_dir, "validate_images")
+	chk_save_dir = os.path.join(cur_dir, chkfile_name)
+	log_save_dir = os.path.join(cur_dir, logfile_name)
+	validate_img_saver_dir = os.path.join(cur_dir, validatefile_name)
 	test_img_saver_dir = os.path.join(cur_dir, "test_images")
 	testing_img_dir = os.path.join(cur_dir, "dataset/test_img")
 	

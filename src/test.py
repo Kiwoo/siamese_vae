@@ -71,7 +71,7 @@ def test_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_check
 
 
 	cur_dir = get_cur_dir()
-	chk_save_dir = os.path.join(cur_dir, "chkfiles")
+	chk_save_dir = os.path.join(cur_dir, "chk1")
 	log_save_dir = os.path.join(cur_dir, "log")
 	validate_img_saver_dir = os.path.join(cur_dir, "validate_images")
 	test_img_saver_dir = os.path.join(cur_dir, "test_images")
@@ -161,26 +161,28 @@ def test_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_check
 	# 				meta_saved = True
 
 	# Testing
+	print testing_images_list
 	if testing == True:
-		test_file_name = testing_images_list[0]
+		test_file_name = testing_images_list[6]
 		print test_file_name
 		test_img = load_single_img(dir_name = testing_img_dir, img_name = test_file_name)
-		test_feature = 27
-		test_variation = np.arange(-5, 5, 0.1)
+		test_features = np.arange(25, 32)
+		for test_feature in test_features:
+			test_variation = np.arange(-10, 10, 0.1)
 
-		z = test(test_img)
-		print np.shape(z)
-		print z
-		for idx in range(len(test_variation)):
-			z_test = np.copy(z)
-			z_test[0, test_feature] = z_test[0, test_feature] + test_variation[idx]
-			reconst_test = test_reconst(z_test)
+			z = test(test_img)
+			print np.shape(z)
+			print z
+			for idx in range(len(test_variation)):
+				z_test = np.copy(z)
+				z_test[0, test_feature] = z_test[0, test_feature] + test_variation[idx]
+				reconst_test = test_reconst(z_test)
+				test_save_img = np.squeeze(reconst_test[0])
+				test_save_img = Image.fromarray(test_save_img)
+				img_file_name = "test_feat_{}_var_({}).png".format(test_feature, test_variation[idx])
+				test_img_saver.save(test_save_img, img_file_name, sub_dir = None)
+			reconst_test = test_reconst(z)
 			test_save_img = np.squeeze(reconst_test[0])
 			test_save_img = Image.fromarray(test_save_img)
-			img_file_name = "test_feat_{}_var_({}).png".format(test_feature, test_variation[idx])
+			img_file_name = "test_feat_{}_var_original.png".format(test_feature)
 			test_img_saver.save(test_save_img, img_file_name, sub_dir = None)
-		reconst_test = test_reconst(z)
-		test_save_img = np.squeeze(reconst_test[0])
-		test_save_img = Image.fromarray(test_save_img)
-		img_file_name = "test_feat_{}_var_original.png".format(test_feature)
-		test_img_saver.save(test_save_img, img_file_name, sub_dir = None)

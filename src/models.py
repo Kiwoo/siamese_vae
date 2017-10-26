@@ -12,10 +12,10 @@ class mymodel(object):
 			self._init(*args, **kwargs)
 			self.scope = tf.get_variable_scope().name
 
-	def _init(self, img_shape, latent_dim):
+	def _init(self, img_shape, latent_dim, disentangled_feat):
 		sequence_length = None
 
-		disentangle_feat_sz = 5
+		disentangle_feat_sz = disentangled_feat
 		entangle_feat_sz = latent_dim - disentangle_feat_sz
 
 		img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
@@ -67,9 +67,12 @@ class mymodel(object):
 		sh_mu2 = mu2[:, 0:entangle_feat_sz]
 		sh_logvar2 = logvar2[:, 0:entangle_feat_sz]
 
-		self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(sh_logvar1 - sh_logvar2), axis = 1)
+		# self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(sh_logvar1 - sh_logvar2), axis = 1)
+		self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(tf.sqrt(tf.exp(sh_logvar1)) - tf.sqrt(tf.exp(sh_logvar2))), axis = 1)
 		# print np.shape(tf.square(sh_mu1 - sh_mu2))
 		# print np.shape(tf.exp(logvar1))
+
+		self.max_siam_loss = U.max(tf.square(sh_mu1 - sh_mu2) + tf.square(tf.sqrt(tf.exp(sh_logvar1)) - tf.sqrt(tf.exp(sh_logvar2))), axis = 1)
 
 
 		self.kl_loss1 = 0.5 * U.sum((tf.exp(logvar1) + mu1**2 - 1. - logvar1), axis = 1)
@@ -81,7 +84,7 @@ class mymodel(object):
 		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])		
 
 
-		self.vaeloss = 5000.0*self.siam_loss + 30000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
+		self.vaeloss = 50000.0*self.siam_loss + 50000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
 

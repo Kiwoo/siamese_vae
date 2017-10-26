@@ -12,7 +12,8 @@ from PIL import Image
 import numpy as np
 import random
 
-def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 256):
+
+def train_curr_net(model, img_dir, max_iter = 3000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
 
@@ -22,7 +23,6 @@ def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_chec
 	cond4 = U.get_placeholder_cached(name="cond4")
 	cond5 = U.get_placeholder_cached(name="cond5")
 	cond6 = U.get_placeholder_cached(name="cond6")
-	cond7 = U.get_placeholder_cached(name="cond7")
 
 
 	# Testing
@@ -65,7 +65,7 @@ def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_chec
 	#[v for v in all_var_list if v.name.split("/")[1].startswith("proj1") or v.name.split("/")[1].startswith("unproj1")]
 	optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
 	merged = tf.summary.merge_all()
-	train = U.function([img1, img2, cond1, cond2, cond3, cond4, cond5, cond6, cond7], 
+	train = U.function([img1, img2, cond1, cond2, cond3, cond4, cond5, cond6], 
 						[losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
 	get_reconst_img = U.function([img1, img2], [model.reconst1, model.reconst2, latent_z1_tp, latent_z2_tp])
 	get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
@@ -110,6 +110,9 @@ def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_chec
 	training = True
 	testing = False
 
+	siam_cond_range = [400000, 800000, 1200000, 1600000, 2000000, 2400000]
+	# siam_cond_range = [1000, 2000, 3000, 4000, 5000, 6000]
+
 	if training == True:
 		for num_iter in range(chk_file_num+1, max_iter):
 			header("******* {}th iter: *******".format(num_iter))
@@ -119,9 +122,12 @@ def train_net(model, img_dir, max_iter = 1000000, check_every_n = 500, loss_chec
 			# print batch_files
 			[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
 			img1, img2 = images1, images2
-			[l1, l2, _, _] = get_reconst_img(img1, img2)
 
-			[loss0, loss1, loss2, loss3, loss4, loss5, latent1, latent2, summary] = train(img1, img2)	
+
+			[l1, l2, _, _] = get_reconst_img(img1, img2)
+			# even though, cond1 and cond2 both are true, but in models switch function it always follow the cond1 first and ignore cond2
+			[cond1, cond2, cond3, cond4, cond5, cond6] = [siam_cond_range[i]>num_iter for i in range(len(siam_cond_range))]
+			[loss0, loss1, loss2, loss3, loss4, loss5, latent1, latent2, summary] = train(img1, img2, cond1, cond2, cond3, cond4, cond5, cond6)	
 
 			warn("Total Loss: {}".format(loss0))
 			warn("Siam loss: {}".format(loss1))
