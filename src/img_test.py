@@ -10,9 +10,9 @@ def getint(name):
 def main():
 	resize_size = (64, 64)
 	cur_dir = get_cur_dir()
-	dataset_dir = os.path.join(cur_dir, "dataset")
-	original_data_dir = os.path.join(dataset_dir, "rendered_chairs")
-	img_save_dir = os.path.join(dataset_dir, "training_img")
+	dataset_dir = os.path.join(cur_dir, "celebA")
+	original_data_dir = os.path.join(dataset_dir, "img_align_celeba")
+	img_save_dir = os.path.join(dataset_dir, "celebA_training_img")
 
 	all_subdir = [f for f in os.listdir(original_data_dir) if os.path.isdir(os.path.join(original_data_dir, f))]	
 	# print all_subdir
@@ -20,25 +20,28 @@ def main():
 	idx = 0
 	all_idx = len(all_subdir)
 	n_files = 0
-	for subdir in all_subdir:
-		print "Processing... {} / {}".format(idx, all_idx)	
-		subdir_dir = os.path.join(original_data_dir, subdir)
-		render_data_dir = os.path.join(subdir_dir, "renders")
-		img_files = [f for f in os.listdir(render_data_dir) if os.path.isfile(os.path.join(render_data_dir, f))]	
-		for file_name in img_files:
-			img_file_path = os.path.join(render_data_dir, file_name)
-			im = Image.open(img_file_path)
-			im = im.crop((150, 150, 450, 450))
-			im_resized = im.resize(resize_size, Image.ANTIALIAS)
-			file_name = "img_{}.png".format(n_files)
-			img_save_file_path = os.path.join(img_save_dir, file_name)
-			im_resized = im_resized.convert("L")
-			img_data = np.asarray(im_resized)
-			test = Image.fromarray(img_data)
-			test.save(img_save_file_path)
-			n_files = n_files + 1
-		idx = idx + 1
-		print "{} files processed".format(n_files)
+	# for subdir in all_subdir:
+	# print "Processing... {} / {}".format(idx, all_idx)	
+	# subdir_dir = os.path.join(original_data_dir, subdir)
+	# render_data_dir = os.path.join(subdir_dir, "renders")
+	img_files = [f for f in os.listdir(original_data_dir) if os.path.isfile(os.path.join(original_data_dir, f))]	
+	total_f_num = len(img_files)
+	for file_name in img_files:
+		img_file_path = os.path.join(original_data_dir, file_name)
+		im = Image.open(img_file_path)
+		# im = im.crop((150, 150, 450, 450))
+		im_resized = im.resize(resize_size, Image.ANTIALIAS)
+		file_name = "img_{}.png".format(n_files)
+		img_save_file_path = os.path.join(img_save_dir, file_name)
+		# im_resized = im_resized.convert("L")
+		img_data = np.asarray(im_resized)
+		test = Image.fromarray(img_data)
+		test.save(img_save_file_path)
+		n_files = n_files + 1
+		if n_files % 100 == 0:
+			print "{} \ {}".format(n_files, total_f_num)
+	idx = idx + 1
+	print "{} files processed".format(n_files)
 	print "Total Files : {}".format(n_files)
 
 
