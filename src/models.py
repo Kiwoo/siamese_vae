@@ -12,7 +12,7 @@ class mymodel(object):
 			self._init(*args, **kwargs)
 			self.scope = tf.get_variable_scope().name
 
-	def _init(self, img_shape, latent_dim, disentangled_feat):
+	def _init(self, img_shape, latent_dim, disentangled_feat, mode):
 		sequence_length = None
 
 		disentangle_feat_sz = disentangled_feat

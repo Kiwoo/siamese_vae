@@ -9,7 +9,7 @@ from misc_util import set_global_seeds, read_dataset, get_cur_dir, header
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
 # from train import train_net
-from train_dsprites import train_net
+# from train_dsprites import train_net
 # from train_curriculum import train_curr_net
 # from test import test_net
 import argparse
@@ -20,7 +20,7 @@ from data_manager import DataManager
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model') # chairs, celeba, dsprites
-    parser.add_argument('--mode') # training, testing
+    parser.add_argument('--mode') # train, test
 
     parser.add_argument('--disentangled_feat', type=int)
     parser.add_argument('--chkfiles')
@@ -70,20 +70,35 @@ def main():
 
     if model == 'chairs':
         import models
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat)
+        from train import train_net
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
     elif model == 'celeb':
         import models_celeba
-        mynet = models_celeba.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat)
+        from train import train_net
+        mynet = models_celeba.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
     elif model == 'dsprites':
         import models_2dshapes
-        mynet = models_2dshapes.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat)
+        from train_dsprites import train_net
+        mynet = models_2dshapes.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
+    else:
+        header("Unknown model name")
+        break
+
+    if mode == 'train':
+        train_net(model = mynet, img_dir = img_dir, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
+
+    elif mode == 'test':
+        header("Not yet implemented")
+    else:
+        header("Unknown mode name")
+        break
 
 
     # mynet = mymodel_curr(name="mynet", img_shape = [64, 64, 1], latent_dim = 32)
     # mynet = mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat)
     # train_curr_net(model = mynet, img_dir = img_dir)
     # train_net(model = mynet, img_dir = img_dir, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
-    train_net(model = mynet, manager = manager, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
+    # train_net(model = mynet, manager = manager, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
     # test_net(model = mynet, img_dir = img_dir)
 
 if __name__ == '__main__':
