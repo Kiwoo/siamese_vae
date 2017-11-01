@@ -51,7 +51,7 @@ def main():
     elif dataset == 'celeba':
         dir_name = 'temporarily not available'
     elif dataset == 'dsprites':
-        dir_name = '/dataset/dsprites'
+        dir_name = '/dataset/dsprites' # This is dummy, for dsprites dataset, we are using data_manager
     else:
         header("Unknown dataset name")
         break

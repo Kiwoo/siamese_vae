@@ -33,6 +33,14 @@ class DataManager(object):
 		index = np.dot(latents, self.latents_bases).astype(int)
 		return self.get_images([index])[0]
 
+	def get_images_single(self, indices):
+		images = []
+		for index in indices:
+			img = self.imgs[index]
+			img = img.reshape(4096)
+			images.append(img)
+		return images
+
 	def get_images(self, indices):
 		images = []
 		for index in indices:
