@@ -142,13 +142,13 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 					sub_dir = "iter_{}".format(num_iter)
 
 					save_img = np.squeeze(images1[img_idx])
-					save_img = Image.fromarray(save_img)
-					img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
+					save_img = Image.fromarray(save_img, 'RGB')
+					img_file_name = "{}_ori.jpg".format(validate_batch_files[img_idx].split('.')[0])				
 					validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
 					save_img = np.squeeze(reconst1[img_idx])
-					save_img = Image.fromarray(save_img)
-					img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
+					save_img = Image.fromarray(save_img, 'RGB')
+					img_file_name = "{}_rec.jpg".format(validate_batch_files[img_idx].split('.')[0])				
 					validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
 			if num_iter % loss_check_n == 1:

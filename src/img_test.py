@@ -9,6 +9,7 @@ def getint(name):
 
 def main():
 	resize_size = (64, 64)
+
 	cur_dir = get_cur_dir()
 	dataset_dir = os.path.join(cur_dir, "celebA")
 	original_data_dir = os.path.join(dataset_dir, "img_align_celeba")
@@ -29,9 +30,19 @@ def main():
 	for file_name in img_files:
 		img_file_path = os.path.join(original_data_dir, file_name)
 		im = Image.open(img_file_path)
-		# im = im.crop((150, 150, 450, 450))
+		width, height = im.size   # Get dimensions
+
+		# print width, height
+
+		left = (width - 120)/2
+		top = (height - 120)/2
+		right = (width + 120)/2
+		bottom = (height + 120)/2
+
+		im = im.crop((left, top, right, bottom))
+
 		im_resized = im.resize(resize_size, Image.ANTIALIAS)
-		file_name = "img_{}.png".format(n_files)
+		file_name = "img_{}.jpg".format(n_files)
 		img_save_file_path = os.path.join(img_save_dir, file_name)
 		# im_resized = im_resized.convert("L")
 		img_data = np.asarray(im_resized)

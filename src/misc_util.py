@@ -8,6 +8,7 @@ import time
 import zipfile
 import errno
 from PIL import Image
+from scipy.misc import imsave
 
 def get_cur_dir():
     return os.getcwd()
@@ -18,8 +19,11 @@ def getint(name):
 
 def read_dataset(dir_name):
     print "Start: Read Dataset"
-    img_dir = dir_name
-    img_files = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f))] 
+    if dir_name == "dsprites-dataset":
+        img_files = np.load("imgs.npy")
+    else:        
+        img_dir = dir_name 
+        img_files = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f))] 
     print "Done: Read Dataset, read {} files".format(len(img_files))
     return img_files
 
@@ -32,10 +36,28 @@ def load_image(dir_name, img_names):
         if im_arr.size == 64*64:
             im_arr = np.expand_dims(im_arr, axis = 2)
             images.append(im_arr)
+        elif im_arr.size == 64*64*3:
+            images.append(im_arr)
         else:
             print header("Error-1")
 
     return images[0:len(images)/2], images[len(images)/2:]
+
+def load_npz_image(img, idx):
+    images = []
+    for i in idx:
+        im_arr = img[i]
+        if im_arr.size == 64*64:
+            im_arr = np.expand_dims(im_arr, axis = 2)
+            images.append(im_arr)
+        elif im_arr.size == 64*64*3:
+            images.append(im_arr)
+        else:
+            print header("Error-1")
+
+    return images[0:len(images)/2], images[len(images)/2:]
+
+
 
 def load_single_img(dir_name, img_name):
     images = []
@@ -45,6 +67,8 @@ def load_single_img(dir_name, img_name):
     im_arr = np.array(im)
     if im_arr.size == 64*64:
         im_arr = np.expand_dims(im_arr, axis = 2)
+        images.append(im_arr)
+    elif im_arr.size == 64*64*3:
         images.append(im_arr)
     else:
         print header("Error-1")
@@ -79,6 +103,17 @@ class Img_Saver(object):
             pil_img = pil_img.convert('RGB')
         pil_img.save(file_path)
 
+class BW_Img_Saver(object):
+    def __init__(self, Img_dir):
+        self.img_dir = Img_dir
+        mkdir_p(self.img_dir)
+    def save(self, img, file_name, sub_dir):
+        img_dir = self.img_dir
+        if sub_dir is not None:
+            img_dir = os.path.join(self.img_dir, sub_dir)
+            mkdir_p(img_dir)
+        file_path = os.path.join(img_dir, file_name)
+        imsave(file_path, img)
 
 class Colors(object):
     HEADER = '\033[95m'

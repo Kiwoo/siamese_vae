@@ -84,7 +84,7 @@ class mymodel(object):
 		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])		
 
 
-		self.vaeloss = 50000.0*self.siam_loss + 50000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
+		self.vaeloss = 1000.0*self.siam_loss + 30000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
 
