@@ -12,15 +12,9 @@ from PIL import Image
 import numpy as np
 import random
 
-def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 50000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
+def train_net(model, mode, img_dir, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 50000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
-
-
-	# Testing
-	# img_test = U.get_placeholder_cached(name="img_test")
-	# reconst_tp = U.get_placeholder_cached(name="reconst_tp")
-
 
 	vae_loss = U.mean(model.vaeloss)
 
@@ -58,20 +52,14 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 
 	all_var_list = model.get_trainable_variables()
 
-	# print all_var_list
+
 	img1_var_list = all_var_list
-	#[v for v in all_var_list if v.name.split("/")[1].startswith("proj1") or v.name.split("/")[1].startswith("unproj1")]
 	optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
 	merged = tf.summary.merge_all()
 	train = U.function([img1, img2], 
 						[losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
 	get_reconst_img = U.function([img1, img2], [model.reconst1, model.reconst2, latent_z1_tp, latent_z2_tp])
 	get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
-
-
-	# testing
-	# test = U.function([img_test], model.latent_z_test)
-	# test_reconst = U.function([reconst_tp], [model.reconst_test])
 
 	cur_dir = get_cur_dir()
 	chk_save_dir = os.path.join(cur_dir, chkfile_name)
@@ -87,9 +75,6 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 
 	saver, chk_file_num = U.load_checkpoints(load_requested = True, checkpoint_dir = chk_save_dir)
 	validate_img_saver = Img_Saver(validate_img_saver_dir)
-
-	# testing
-	# test_img_saver = Img_Saver(test_img_saver_dir)
 
 	meta_saved = False
 
@@ -108,13 +93,12 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 	training = True
 	testing = False
 
-	if training == True:
+	if mode == 'train':
 		for num_iter in range(chk_file_num+1, max_iter):
 			header("******* {}th iter: *******".format(num_iter))
 
 			idx = random.sample(range(n_total_train_data), 2*batch_size)
 			batch_files = [training_images_list[i] for i in idx]
-			# print batch_files
 			[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
 			img1, img2 = images1, images2
 			[l1, l2, _, _] = get_reconst_img(img1, img2)
@@ -128,16 +112,13 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 			warn("reconst_err1: {}".format(loss4))
 			warn("reconst_err2: {}".format(loss5))
 
-			# warn("num_iter: {} check: {}".format(num_iter, check_every_n))
-			# warn("Total Loss: {}".format(loss6))
 			if num_iter % check_every_n == 1:
 				header("******* {}th iter: *******".format(num_iter))
 				idx = random.sample(range(len(training_images_list)), 2*5)
 				validate_batch_files = [training_images_list[i] for i in idx]
 				[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
 				[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
-				# for i in range(len(latent1[0])):
-				# 	print "{} th: {:.2f}".format(i, np.mean(np.abs(latent1[:, i] - latent2[:, i])))
+
 				for img_idx in range(len(images1)):
 					sub_dir = "iter_{}".format(num_iter)
 
@@ -163,26 +144,26 @@ def train_net(model, img_dir, chkfile_name, logfile_name, validatefile_name, ent
 					meta_saved = True
 
 	# Testing
-	# if testing == True:
-	# 	test_file_name = testing_images_list[0]
-	# 	print test_file_name
-	# 	test_img = load_single_img(dir_name = testing_img_dir, img_name = test_file_name)
-	# 	test_feature = 31
-	# 	test_variation = np.arange(-5, 5, 0.1)
+	elif mode == 'test':
+		test_file_name = testing_images_list[0]
+		print test_file_name
+		test_img = load_single_img(dir_name = testing_img_dir, img_name = test_file_name)
+		test_feature = 31
+		test_variation = np.arange(-5, 5, 0.1)
 
-	# 	z = test(test_img)
-	# 	print np.shape(z)
-	# 	print z
-	# 	for idx in range(len(test_variation)):
-	# 		z_test = np.copy(z)
-	# 		z_test[0, test_feature] = z_test[0, test_feature] + test_variation[idx]
-	# 		reconst_test = test_reconst(z_test)
-	# 		test_save_img = np.squeeze(reconst_test[0])
-	# 		test_save_img = Image.fromarray(test_save_img)
-	# 		img_file_name = "test_feat_{}_var_({}).png".format(test_feature, test_variation[idx])
-	# 		test_img_saver.save(test_save_img, img_file_name, sub_dir = None)
-	# 	reconst_test = test_reconst(z)
-	# 	test_save_img = np.squeeze(reconst_test[0])
-	# 	test_save_img = Image.fromarray(test_save_img)
-	# 	img_file_name = "test_feat_{}_var_original.png".format(test_feature)
-	# 	test_img_saver.save(test_save_img, img_file_name, sub_dir = None)
+		z = test(test_img)
+		print np.shape(z)
+		print z
+		for idx in range(len(test_variation)):
+			z_test = np.copy(z)
+			z_test[0, test_feature] = z_test[0, test_feature] + test_variation[idx]
+			reconst_test = test_reconst(z_test)
+			test_save_img = np.squeeze(reconst_test[0])
+			test_save_img = Image.fromarray(test_save_img)
+			img_file_name = "test_feat_{}_var_({}).png".format(test_feature, test_variation[idx])
+			test_img_saver.save(test_save_img, img_file_name, sub_dir = None)
+		reconst_test = test_reconst(z)
+		test_save_img = np.squeeze(reconst_test[0])
+		test_save_img = Image.fromarray(test_save_img)
+		img_file_name = "test_feat_{}_var_original.png".format(test_feature)
+		test_img_saver.save(test_save_img, img_file_name, sub_dir = None)

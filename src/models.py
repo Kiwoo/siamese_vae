@@ -4,8 +4,6 @@ import numpy as np
 
 # Check max-pooling on proj, deconv net
 
-
-
 class mymodel(object):
 	def __init__(self, name, *args, **kwargs):
 		with tf.variable_scope(name):
@@ -15,15 +13,20 @@ class mymodel(object):
 	def _init(self, img_shape, latent_dim, disentangled_feat, mode):
 		sequence_length = None
 
-		disentangle_feat_sz = disentangled_feat
-		entangle_feat_sz = latent_dim - disentangle_feat_sz
-
 		img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
 		img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
 
+		channel_img = img_shape[2]
+
+		loss_weight = {'siam': 1000.0, 'kl': 30000.0}
+
+		disentangle_feat_sz = disentangled_feat
+		entangle_feat_sz = latent_dim - disentangle_feat_sz
+
 		# [testing -> ]
-		# img_test = U.get_placeholder(name="img_test", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
-		# reconst_tp = U.get_placeholder(name="reconst_tp", dtype=tf.float32, shape=[sequence_length, latent_dim])
+		if mode == 'test'
+			img_test = U.get_placeholder(name="img_test", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
+			reconst_tp = U.get_placeholder(name="reconst_tp", dtype=tf.float32, shape=[sequence_length, latent_dim])
 		# [testing <- ]
 
 
@@ -32,33 +35,26 @@ class mymodel(object):
 
 		[mu1, logvar1, mu2, logvar2] = self.siamese_encoder(img1_scaled, img2_scaled, latent_dim)
 
-		print np.shape(mu1)
-		print np.shape(logvar1)
-
 		latent_z1 = self.sample_latent_var(mu1, logvar1)
 		latent_z2 = self.sample_latent_var(mu2, logvar2)
 
-
 		self.latent_z1 = latent_z1
 		self.latent_z2 = latent_z2
-
-		print np.shape(latent_z1)
-		print np.shape(latent_z2)
 
 		[reconst1, reconst2] = self.siamese_decoder(latent_z1, latent_z2)
 		self.reconst1 = reconst1
 		self.reconst2 = reconst2
 
 		# [testing -> ]
-		# selected_feature = 28
-		# latent_v_range = np.arange(-1, 1, 0.5)
+		if mode == 'test'
+			selected_feature = 28
+			latent_v_range = np.arange(-1, 1, 0.5)
 
-		# [mu_test, logvar_test] = self.encoder(img_test, latent_dim)
-		# self.latent_z_test = self.sample_latent_var(mu_test, logvar_test)
-		# print ("----")
-		# print np.shape(self.latent_z_test)
-		# self.reconst_test = self.decoder(reconst_tp)
-
+			[mu_test, logvar_test] = self.encoder(img_test, latent_dim)
+			self.latent_z_test = self.sample_latent_var(mu_test, logvar_test)
+			print ("----")
+			print np.shape(self.latent_z_test)
+			self.reconst_test = self.decoder(reconst_tp)
 		# [testing <- ]
 
 		sh_mu1 = mu1[:, 0:entangle_feat_sz]
@@ -67,10 +63,7 @@ class mymodel(object):
 		sh_mu2 = mu2[:, 0:entangle_feat_sz]
 		sh_logvar2 = logvar2[:, 0:entangle_feat_sz]
 
-		# self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(sh_logvar1 - sh_logvar2), axis = 1)
 		self.siam_loss = U.sum(tf.square(sh_mu1 - sh_mu2), axis = 1) + U.sum(tf.square(tf.sqrt(tf.exp(sh_logvar1)) - tf.sqrt(tf.exp(sh_logvar2))), axis = 1)
-		# print np.shape(tf.square(sh_mu1 - sh_mu2))
-		# print np.shape(tf.exp(logvar1))
 
 		self.max_siam_loss = U.max(tf.square(sh_mu1 - sh_mu2) + tf.square(tf.sqrt(tf.exp(sh_logvar1)) - tf.sqrt(tf.exp(sh_logvar2))), axis = 1)
 
@@ -84,7 +77,7 @@ class mymodel(object):
 		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])		
 
 
-		self.vaeloss = 1000.0*self.siam_loss + 30000.0*self.kl_loss1 + 30000.0*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
+		self.vaeloss = loss_weight['siam']*self.siam_loss + loss_weight['kl']*self.kl_loss1 + loss_weight['kl']*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
 
@@ -108,7 +101,7 @@ class mymodel(object):
 		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,64,64], [tf.shape(x)[0], 8,8,64], "uc1", [2, 2], pad="SAME")) # [8, 8, 64]
 		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,64], [tf.shape(x)[0], 16,16,32], "uc2", [2, 2], pad="SAME")) # [16, 16, 32]
 		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,32], [tf.shape(x)[0], 32,32,32], "uc3", [2, 2], pad="SAME")) # [32, 32, 32]
-		x = U.conv2d_transpose(x, [4,4,1,32], [tf.shape(x)[0], 64,64,1], "uc4", [2, 2], pad="SAME") # [64, 64, 1]
+		x = U.conv2d_transpose(x, [4,4,channel_img, 32], [tf.shape(x)[0], 64,64,channel_img], "uc4", [2, 2], pad="SAME") # [64, 64, channel_img = 1 or 3]
 		return x
 
 	def sample_latent_var(self, mu, logvar):

@@ -68,24 +68,25 @@ def main():
     sess.__enter__()
     set_global_seeds(0)
 
+    # Model Setting
+
+    import models
+
     if model == 'chairs':
-        import models
-        from train import train_net
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
     elif model == 'celeb':
-        import models_celeba
-        from train import train_net
-        mynet = models_celeba.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
     elif model == 'dsprites':
-        import models_2dshapes
-        from train_dsprites import train_net
-        mynet = models_2dshapes.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, batch_size = 512)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
     else:
         header("Unknown model name")
         break
 
+
+    # Traing or Test
+
     if mode == 'train':
-        train_net(model = mynet, img_dir = img_dir, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
+        train_net(model = mynet, mode = mode, img_dir = img_dir, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
 
     elif mode == 'test':
         header("Not yet implemented")
