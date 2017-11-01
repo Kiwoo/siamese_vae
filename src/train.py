@@ -63,33 +63,29 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 	chk_save_dir = os.path.join(cur_dir, chkfile_name)
 	log_save_dir = os.path.join(cur_dir, logfile_name)
 	validate_img_saver_dir = os.path.join(cur_dir, validatefile_name)
-	test_img_saver_dir = os.path.join(cur_dir, "test_images")
-	testing_img_dir = os.path.join(cur_dir, "dataset/chairs/test_img")
+	if dataset == 'chairs' or dataset == 'celeba':
+		test_img_saver_dir = os.path.join(cur_dir, "test_images")
+		testing_img_dir = os.path.join(cur_dir, "dataset/{}/test_img".format(dataset))
 	
 	train_writer = U.summary_writer(dir = log_save_dir)
-
 
 	U.initialize()
 
 	saver, chk_file_num = U.load_checkpoints(load_requested = True, checkpoint_dir = chk_save_dir)
-	validate_img_saver = Img_Saver(validate_img_saver_dir)
+	if dataset == 'chairs' or dataset == 'celeba':
+		validate_img_saver = Img_Saver(Img_dir = validate_img_saver_dir)
+	elif dataset == 'dsprites':
+		validate_img_saver = BW_Img_Saver(validate_img_saver_dir)
+	else:
+		warn("Unknown dataset Error in Train.py")
 
 	meta_saved = False
-
-	iter_log = []
-	loss1_log = []
-	loss2_log = []
-
-	loss3_log = []
 
 	training_images_list = read_dataset(img_dir)
 	n_total_train_data = len(training_images_list)
 
 	testing_images_list = read_dataset(testing_img_dir)
 	n_total_testing_data = len(testing_images_list)
-
-	training = True
-	testing = False
 
 	if mode == 'train':
 		for num_iter in range(chk_file_num+1, max_iter):
