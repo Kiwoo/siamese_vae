@@ -81,9 +81,6 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		warn("Unknown dataset Error")
 		break
 
-	meta_saved = False
-
-
 	if dataset == 'chairs' or dataset == 'celeba':
 		training_images_list = read_dataset(img_dir)
 		n_total_train_data = len(training_images_list)
@@ -96,6 +93,8 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		warn("Unknown dataset Error")
 		break
 
+
+	meta_saved = False
 
 	if mode == 'train':
 		for num_iter in range(chk_file_num+1, max_iter):

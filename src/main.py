@@ -4,11 +4,11 @@ import tf_util as U
 import os.path as osp
 import sys
 from misc_util import set_global_seeds, read_dataset, get_cur_dir, header
-# from models import mymodel
+from models import mymodel
 # from models_2dshapes import mymodel
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
-# from train import train_net
+from train import train_net
 # from train_dsprites import train_net
 # from train_curriculum import train_curr_net
 # from test import test_net
@@ -18,6 +18,12 @@ from data_manager import DataManager
 
 
 def main():
+
+    # Base: https://openreview.net/pdf?id=Sy2fzU9gl
+
+    # (1) parse arguments
+
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset') # chairs, celeba, dsprites
     parser.add_argument('--mode') # train, test
@@ -37,14 +43,7 @@ def main():
     logfile_name = args.logfiles
     validatefile_name = args.validatefiles
 
-    # if model == 'dsprites':       
-    #     header("Loading Dataset")
-    #     dir_name = "dsprites-dataset"
-    #     if dir_name == "dsprites-dataset":
-    #         manager = DataManager()
-    #         manager.load()
-
-    #     header("Loading Datasetn Done")
+    # (2) Dataset
 
     if dataset == 'chairs':
         dir_name = '/dataset/chairs/training_img'
@@ -55,12 +54,18 @@ def main():
     else:
         header("Unknown dataset name")
         break
-
     cur_dir = get_cur_dir()
     img_dir = osp.join(cur_dir, dir_name)
 
+    # (3) Set latent space, and disentangled_feat, according to beta-VAE( https://openreview.net/pdf?id=Sy2fzU9gl )
 
-    latent_dim = 10
+    if dataset == 'chairs':
+        latent_dim = 32
+    elif dataset == 'celeba':
+        latent_dim = 32
+    elif dataset == 'dsprites':
+        latent_dim = 10
+
     entangled_feat = latent_dim - disentangled_feat
 
     sess = U.single_threaded_session()
@@ -86,7 +91,6 @@ def main():
 
     if mode == 'train':
         train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
-
     elif mode == 'test':
         header("Not yet implemented")
     else:
