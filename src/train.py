@@ -12,7 +12,7 @@ from PIL import Image
 import numpy as np
 import random
 
-def train_net(model, mode, img_dir, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 50000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
+def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 50000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 64):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
 
@@ -44,8 +44,6 @@ def train_net(model, mode, img_dir, chkfile_name, logfile_name, validatefile_nam
 	decoded_img = [model.reconst1, model.reconst2]
 
 
-	weight_loss = [1, 1, 1]
-
 	compute_losses = U.function([img1, img2], vae_loss)
 	lr = 0.0001
 	optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
@@ -66,7 +64,7 @@ def train_net(model, mode, img_dir, chkfile_name, logfile_name, validatefile_nam
 	log_save_dir = os.path.join(cur_dir, logfile_name)
 	validate_img_saver_dir = os.path.join(cur_dir, validatefile_name)
 	test_img_saver_dir = os.path.join(cur_dir, "test_images")
-	testing_img_dir = os.path.join(cur_dir, "dataset/test_img")
+	testing_img_dir = os.path.join(cur_dir, "dataset/chairs/test_img")
 	
 	train_writer = U.summary_writer(dir = log_save_dir)
 

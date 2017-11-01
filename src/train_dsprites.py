@@ -51,8 +51,6 @@ def train_net(model, manager, chkfile_name, logfile_name, validatefile_name, ent
 	# decoded_img = [model.reconst1, model.reconst2]
 
 
-	weight_loss = [1, 1, 1]
-
 	compute_losses = U.function([img1, img2], vae_loss)
 	lr = 0.005
 	optimizer=tf.train.AdagradOptimizer(learning_rate=lr)

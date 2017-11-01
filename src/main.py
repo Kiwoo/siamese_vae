@@ -19,7 +19,7 @@ from data_manager import DataManager
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model') # chairs, celeba, dsprites
+    parser.add_argument('--dataset') # chairs, celeba, dsprites
     parser.add_argument('--mode') # train, test
 
     parser.add_argument('--disentangled_feat', type=int)
@@ -30,7 +30,7 @@ def main():
 
     # Important!!! : If we don't use single threaded session, then we need to change this!!!
 
-    model = args.model
+    dataset = args.dataset
     mode = args.mode
     disentangled_feat = args.disentangled_feat
     chkfile_name = args.chkfiles
@@ -46,20 +46,19 @@ def main():
 
     #     header("Loading Datasetn Done")
 
-    if model == 'chairs':
-        dir_name = ''
-    elif model == 'celeba':
-        dir_name = ''
-    elif model == 'dsprites':
-        dir_name = ''
+    if dataset == 'chairs':
+        dir_name = '/dataset/chairs/training_img'
+    elif dataset == 'celeba':
+        dir_name = 'temporarily not available'
+    elif dataset == 'dsprites':
+        dir_name = '/dataset/dsprites'
     else:
-        header("Unknown model name")
+        header("Unknown dataset name")
         break
 
     cur_dir = get_cur_dir()
     img_dir = osp.join(cur_dir, dir_name)
 
-    header("Load model")
 
     latent_dim = 10
     entangled_feat = latent_dim - disentangled_feat
@@ -72,11 +71,11 @@ def main():
 
     import models
 
-    if model == 'chairs':
+    if dataset == 'chairs':
         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
-    elif model == 'celeb':
+    elif dataset == 'celeba':
         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
-    elif model == 'dsprites':
+    elif dataset == 'dsprites':
         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
     else:
         header("Unknown model name")
@@ -86,7 +85,7 @@ def main():
     # Traing or Test
 
     if mode == 'train':
-        train_net(model = mynet, mode = mode, img_dir = img_dir, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
+        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
 
     elif mode == 'test':
         header("Not yet implemented")
