@@ -103,8 +103,7 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 
 	if mode == 'train':
 		for num_iter in range(chk_file_num+1, max_iter):
-			header("******* {}th iter: *******".format(num_iter))
-			print batch_size
+			
 			idx = random.sample(range(n_total_train_data), 2*batch_size)
 			batch_files = [training_images_list[i] for i in idx]
 
@@ -112,34 +111,30 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 				[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
 			elif dataset == 'dsprites':
 				[images1, images2] = manager.get_images(indices = idx)
-			print "loaded"
-			print len(images1)
 			img1, img2 = images1, images2
 			[l1, l2, _, _] = get_reconst_img(img1, img2)
 
 			[loss0, loss1, loss2, loss3, loss4, loss5, latent1, latent2, summary] = train(img1, img2)	
 
-			warn("Total Loss: {}".format(loss0))
-			warn("Siam loss: {}".format(loss1))
-			warn("kl1_loss: {}".format(loss2))
-			warn("kl2_loss: {}".format(loss3))
-			warn("reconst_err1: {}".format(loss4))
-			warn("reconst_err2: {}".format(loss5))
+			if num_iter % 50 == 1:
+				header("******* {}th iter: *******".format(num_iter))
+				warn("Total Loss: {}".format(loss0))
+				warn("Siam loss: {}".format(loss1))
+				warn("kl1_loss: {}".format(loss2))
+				warn("kl2_loss: {}".format(loss3))
+				warn("reconst_err1: {}".format(loss4))
+				warn("reconst_err2: {}".format(loss5))
 
 			if num_iter % check_every_n == 1:
 				header("******* {}th iter: *******".format(num_iter))
 				idx = random.sample(range(len(training_images_list)), 2*5)
 				validate_batch_files = [training_images_list[i] for i in idx]
-				print validate_batch_files
 				if dataset == 'chairs' or dataset == 'celeba':
 					[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
 				elif dataset == 'dsprites':
 					[images1, images2] = manager.get_images(indices = idx)
 
-				print np.shape(images1[0])
-				print len(images1)
 				[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
-				print np.shape(reconst1[0])
 
 				if dataset == 'chairs':
 					for img_idx in range(len(images1)):
@@ -197,14 +192,11 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 	# Testing
 	elif mode == 'test':
 		test_file_name = testing_images_list[0]
-		print test_file_name
 		test_img = load_single_img(dir_name = testing_img_dir, img_name = test_file_name)
 		test_feature = 31
 		test_variation = np.arange(-5, 5, 0.1)
 
 		z = test(test_img)
-		print np.shape(z)
-		print z
 		for idx in range(len(test_variation)):
 			z_test = np.copy(z)
 			z_test[0, test_feature] = z_test[0, test_feature] + test_variation[idx]

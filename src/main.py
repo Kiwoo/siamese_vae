@@ -61,7 +61,7 @@ def main():
     if dataset == 'chairs':
         latent_dim = 32
         loss_weight = {'siam': 50000.0, 'kl': 30000.0}
-        batch_size = 16
+        batch_size = 32
         max_iter = 3000000
         lr = 0.0001
     elif dataset == 'celeba':
