@@ -79,7 +79,7 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		validate_img_saver = BW_Img_Saver(Img_dir = validate_img_saver_dir) # Black and White, temporary usage
 	else:
 		warn("Unknown dataset Error")
-		break
+		# break
 
 	if dataset == 'chairs' or dataset == 'celeba':
 		training_images_list = read_dataset(img_dir)
@@ -91,7 +91,7 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		manager.load()
 	else:
 		warn("Unknown dataset Error")
-		break
+		# break
 
 
 	meta_saved = False

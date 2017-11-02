@@ -4,7 +4,7 @@ import tf_util as U
 import os.path as osp
 import sys
 from misc_util import set_global_seeds, read_dataset, get_cur_dir, header
-from models import mymodel
+import models
 # from models_2dshapes import mymodel
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
@@ -29,19 +29,15 @@ def main():
     parser.add_argument('--mode') # train, test
 
     parser.add_argument('--disentangled_feat', type=int)
-    parser.add_argument('--chkfiles')
-    parser.add_argument('--logfiles')
-    parser.add_argument('--validatefiles')
     args = parser.parse_args()
 
-    # Important!!! : If we don't use single threaded session, then we need to change this!!!
 
     dataset = args.dataset
     mode = args.mode
     disentangled_feat = args.disentangled_feat
-    chkfile_name = args.chkfiles
-    logfile_name = args.logfiles
-    validatefile_name = args.validatefiles
+    chkfile_name = "chk_{}_{}".format(dataset, disentangled_feat)
+    logfile_name = "log_{}_{}".format(dataset, disentangled_feat)
+    validatefile_name = "val_{}_{}".format(dataset, disentangled_feat)
 
     # (2) Dataset
 
@@ -53,20 +49,32 @@ def main():
         dir_name = '/dataset/dsprites' # This is dummy, for dsprites dataset, we are using data_manager
     else:
         header("Unknown dataset name")
-        break
+        # break
     cur_dir = get_cur_dir()
     img_dir = osp.join(cur_dir, dir_name)
 
-    # (3) Set latent space, and disentangled_feat, according to beta-VAE( https://openreview.net/pdf?id=Sy2fzU9gl )
+    # (3) Set experiment configuration, and disentangled_feat, according to beta-VAE( https://openreview.net/pdf?id=Sy2fzU9gl )
 
     if dataset == 'chairs':
         latent_dim = 32
+        loss_weight = {'siam': 50000.0, 'kl': 30000.0}
+        batch_size = 512
+        max_iter = 3000000
     elif dataset == 'celeba':
         latent_dim = 32
+        loss_weight = {'siam': 1000.0, 'kl': 30000.0}
+        batch_size = 512
+        max_iter = 3000000
     elif dataset == 'dsprites':
         latent_dim = 10
+        loss_weight = {'siam': 1.0, 'kl': 4.0}
+        batch_size = 512
+        max_iter = 3000000
 
     entangled_feat = latent_dim - disentangled_feat
+
+    # (4) Open Tensorflow session, Need to find optimal configuration because we don't need to use single thread session
+    # Important!!! : If we don't use single threaded session, then we need to change this!!!
 
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -74,29 +82,29 @@ def main():
 
     # Model Setting
 
-    import models
+    # (5) Import model, merged into models.py
+    # only celeba has RGB channel, other has black and white.
 
     if dataset == 'chairs':
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
     elif dataset == 'celeba':
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
     elif dataset == 'dsprites':
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode)
+        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
     else:
         header("Unknown model name")
-        break
+        # break
 
-
-    # Traing or Test
+    # (6) Train or test the model
+    # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat)
+        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_iter = max_iter, batch_size = batch_size)
     elif mode == 'test':
-        header("Not yet implemented")
+        header("Need to be merged")
     else:
         header("Unknown mode name")
-        break
-
+        # break
 
     # mynet = mymodel_curr(name="mynet", img_shape = [64, 64, 1], latent_dim = 32)
     # mynet = mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat)
