@@ -2,7 +2,7 @@ import tf_util as U
 import tensorflow as tf
 import os
 import sys
-from misc_util import set_global_seeds, read_dataset, warn, mkdir_p, failure, header, get_cur_dir, load_image, Img_Saver, load_single_img
+from misc_util import set_global_seeds, read_dataset, warn, mkdir_p, failure, header, get_cur_dir, load_image, Img_Saver, load_single_img, BW_Img_Saver
 import argparse
 import matplotlib.pyplot as plt
 # from skimage.io import imsave
@@ -12,6 +12,7 @@ from PIL import Image
 import numpy as np
 import random
 from data_manager import DataManager
+import os.path as osp
 
 def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 3000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 512):
 	img1 = U.get_placeholder_cached(name="img1")
@@ -42,11 +43,10 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 	tf.summary.scalar('Siam Normal', siam_normal)
 	tf.summary.scalar('Siam Max', siam_max)
 
-	decoded_img = [model.reconst1, model.reconst2]
 
 
 	compute_losses = U.function([img1, img2], vae_loss)
-	lr = 0.0001
+	lr = 0.001
 	optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
 
 	all_var_list = model.get_trainable_variables()
@@ -81,6 +81,7 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		warn("Unknown dataset Error")
 		# break
 
+	warn(img_dir)
 	if dataset == 'chairs' or dataset == 'celeba':
 		training_images_list = read_dataset(img_dir)
 		n_total_train_data = len(training_images_list)
@@ -88,7 +89,12 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		n_total_testing_data = len(testing_images_list)
 	elif dataset == 'dsprites':
 		manager = DataManager()
-		manager.load()
+		cur_dir = osp.join(cur_dir, 'dataset')
+		cur_dir = osp.join(cur_dir, 'dsprites')
+		img_dir = osp.join(cur_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+		manager.load(img_dir)
+		training_images_list = manager.imgs
+		n_total_train_data = len(training_images_list)
 	else:
 		warn("Unknown dataset Error")
 		# break
@@ -99,13 +105,16 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 	if mode == 'train':
 		for num_iter in range(chk_file_num+1, max_iter):
 			header("******* {}th iter: *******".format(num_iter))
-
+			print batch_size
 			idx = random.sample(range(n_total_train_data), 2*batch_size)
 			batch_files = [training_images_list[i] for i in idx]
+
 			if dataset == 'chairs' or dataset == 'celeba':
 				[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
 			elif dataset == 'dsprites':
 				[images1, images2] = manager.get_images(indices = idx)
+			print "loaded"
+			print len(images1)
 			img1, img2 = images1, images2
 			[l1, l2, _, _] = get_reconst_img(img1, img2)
 
@@ -122,32 +131,55 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 				header("******* {}th iter: *******".format(num_iter))
 				idx = random.sample(range(len(training_images_list)), 2*5)
 				validate_batch_files = [training_images_list[i] for i in idx]
-				[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
-				[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
-
+				print validate_batch_files
 				if dataset == 'chairs' or dataset == 'celeba':
+					[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
+				elif dataset == 'dsprites':
+					[images1, images2] = manager.get_images(indices = idx)
+
+				print np.shape(images1[0])
+				print len(images1)
+				[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
+				print np.shape(reconst1[0])
+
+				if dataset == 'chairs':
+					for img_idx in range(len(images1)):
+						sub_dir = "iter_{}".format(num_iter)
+
+						save_img = np.squeeze(images1[img_idx])
+						save_img = Image.fromarray(save_img)
+						img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
+						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+
+						save_img = np.squeeze(reconst1[img_idx])
+						save_img = Image.fromarray(save_img)
+						img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
+						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+				elif dataset == 'celeba':
 					for img_idx in range(len(images1)):
 						sub_dir = "iter_{}".format(num_iter)
 
 						save_img = np.squeeze(images1[img_idx])
 						save_img = Image.fromarray(save_img, 'RGB')
-						img_file_name = "{}_ori.jpg".format(validate_batch_files[img_idx].split('.')[0])				
+						img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
 						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
 						save_img = np.squeeze(reconst1[img_idx])
 						save_img = Image.fromarray(save_img, 'RGB')
-						img_file_name = "{}_rec.jpg".format(validate_batch_files[img_idx].split('.')[0])				
+						img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
 						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 				elif dataset == 'dsprites':
 					for img_idx in range(len(images1)):
 						sub_dir = "iter_{}".format(num_iter)
 
-						save_img = images1[img_idx].reshape(64, 64)
+						# save_img = images1[img_idx].reshape(64, 64)
+						save_img = np.squeeze(images1[img_idx])
 						save_img = save_img.astype(np.float32)
 						img_file_name = "{}_ori.jpg".format(img_idx)				
 						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
-						save_img = reconst1[img_idx].reshape(64, 64)
+						# save_img = reconst1[img_idx].reshape(64, 64)
+						save_img = np.squeeze(reconst1[img_idx])
 						save_img = save_img.astype(np.float32)
 						img_file_name = "{}_rec.jpg".format(img_idx)				
 						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)					

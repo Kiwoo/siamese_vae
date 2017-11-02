@@ -17,13 +17,9 @@ def getint(name):
     file_num = name.split('.')
     return int(file_num[0])
 
-def read_dataset(dir_name, dataset):
-    print "Start: Read Dataset"
-    if dataset == "dsprites-dataset":
-        img_files = np.load("imgs.npy")
-    else:        
-        img_dir = dir_name 
-        img_files = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f))] 
+def read_dataset(dir_name):       
+    img_dir = dir_name 
+    img_files = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f))] 
     print "Done: Read Dataset, read {} files".format(len(img_files))
     return img_files
 

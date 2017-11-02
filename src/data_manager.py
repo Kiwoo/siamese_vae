@@ -1,9 +1,11 @@
 import numpy as np
+import os.path as osp
 
 class DataManager(object):
-	def load(self):
+	def load(self, img_dir):
 		# Load dataset
-		dataset_zip = np.load('dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+		# dataset_zip = np.load('dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+		dataset_zip = np.load(img_dir)
 
 		# print('Keys in the dataset:', dataset_zip.keys())
 		#  ['metadata', 'imgs', 'latents_classes', 'latents_values']
@@ -37,7 +39,8 @@ class DataManager(object):
 		images = []
 		for index in indices:
 			img = self.imgs[index]
-			img = img.reshape(4096)
+			img = np.expand_dims(img, axis = 2)
+			# img = img.reshape(4096)
 			images.append(img)
 		return images
 
@@ -45,7 +48,8 @@ class DataManager(object):
 		images = []
 		for index in indices:
 			img = self.imgs[index]
-			img = img.reshape(4096)
+			img = np.expand_dims(img, axis = 2)
+			# img = img.reshape(4096)
 			images.append(img)
 		return images[0:len(images)/2], images[len(images)/2:]
 
