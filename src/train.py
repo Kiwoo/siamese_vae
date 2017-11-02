@@ -14,7 +14,7 @@ import random
 from data_manager import DataManager
 import os.path as osp
 
-def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 3000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 512):
+def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 3000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 512, lr = 0.001):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
 
@@ -46,7 +46,6 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 
 
 	compute_losses = U.function([img1, img2], vae_loss)
-	lr = 0.001
 	optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
 
 	all_var_list = model.get_trainable_variables()
