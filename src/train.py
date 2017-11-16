@@ -13,8 +13,9 @@ import numpy as np
 import random
 from data_manager import DataManager
 import os.path as osp
+import time
 
-def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_iter = 3000000, check_every_n = 500, loss_check_n = 10, save_model_freq = 1000, batch_size = 512, lr = 0.001):
+def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
 	img1 = U.get_placeholder_cached(name="img1")
 	img2 = U.get_placeholder_cached(name="img2")
 
@@ -71,7 +72,7 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 
 	U.initialize()
 
-	saver, chk_file_num = U.load_checkpoints(load_requested = True, checkpoint_dir = chk_save_dir)
+	saver, chk_file_epoch_num = U.load_checkpoints(load_requested = True, checkpoint_dir = chk_save_dir)
 	if dataset == 'chairs' or dataset == 'celeba':
 		validate_img_saver = Img_Saver(Img_dir = validate_img_saver_dir)
 	elif dataset == 'dsprites':
@@ -87,107 +88,113 @@ def train_net(model, mode, img_dir, dataset, chkfile_name, logfile_name, validat
 		testing_images_list = read_dataset(testing_img_dir)
 		n_total_testing_data = len(testing_images_list)
 	elif dataset == 'dsprites':
-		manager = DataManager()
 		cur_dir = osp.join(cur_dir, 'dataset')
 		cur_dir = osp.join(cur_dir, 'dsprites')
 		img_dir = osp.join(cur_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-		manager.load(img_dir)
-		training_images_list = manager.imgs
-		n_total_train_data = len(training_images_list)
+		manager = DataManager(img_dir, batch_size)
 	else:
 		warn("Unknown dataset Error")
 		# break
 
-
 	meta_saved = False
 
 	if mode == 'train':
-		for num_iter in range(chk_file_num+1, max_iter):
-			
-			idx = random.sample(range(n_total_train_data), 2*batch_size)
-			batch_files = [training_images_list[i] for i in idx]
+		for epoch_idx in range(chk_file_epoch_num+1, max_epoch):
+			t_epoch_start = time.time()
+			num_batch = manager.get_len()
 
-			if dataset == 'chairs' or dataset == 'celeba':
-				[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
-			elif dataset == 'dsprites':
-				[images1, images2] = manager.get_images(indices = idx)
-			img1, img2 = images1, images2
-			[l1, l2, _, _] = get_reconst_img(img1, img2)
-
-			[loss0, loss1, loss2, loss3, loss4, loss5, latent1, latent2, summary] = train(img1, img2)	
-
-			if num_iter % 50 == 1:
-				header("******* {}th iter: *******".format(num_iter))
-				warn("Total Loss: {}".format(loss0))
-				warn("Siam loss: {}".format(loss1))
-				warn("kl1_loss: {}".format(loss2))
-				warn("kl2_loss: {}".format(loss3))
-				warn("reconst_err1: {}".format(loss4))
-				warn("reconst_err2: {}".format(loss5))
-
-			if num_iter % check_every_n == 1:
-				header("******* {}th iter: *******".format(num_iter))
-				idx = random.sample(range(len(training_images_list)), 2*5)
-				validate_batch_files = [training_images_list[i] for i in idx]
+			for batch_idx in range(num_batch):
 				if dataset == 'chairs' or dataset == 'celeba':
-					[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
+					idx = random.sample(range(n_total_train_data), 2*batch_size)	
+					batch_files = [training_images_list[i] for i in idx]
+					[images1, images2] = load_image(dir_name = img_dir, img_names = batch_files)
 				elif dataset == 'dsprites':
-					[images1, images2] = manager.get_images(indices = idx)
+					[images1, images2] = manager.get_next()
+				img1, img2 = images1, images2
+				[l1, l2, _, _] = get_reconst_img(img1, img2)
 
-				[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
+				[loss0, loss1, loss2, loss3, loss4, loss5, latent1, latent2, summary] = train(img1, img2)	
 
-				if dataset == 'chairs':
-					for img_idx in range(len(images1)):
-						sub_dir = "iter_{}".format(num_iter)
+				if batch_idx % 50 == 1:
+					header("******* epoch: {}/{} batch: {}/{} *******".format(epoch_idx, max_epoch, batch_idx, num_batch))
+					warn("Total Loss: {}".format(loss0))
+					warn("Siam loss: {}".format(loss1))
+					warn("kl1_loss: {}".format(loss2))
+					warn("kl2_loss: {}".format(loss3))
+					warn("reconst_err1: {}".format(loss4))
+					warn("reconst_err2: {}".format(loss5))
 
-						save_img = np.squeeze(images1[img_idx])
-						save_img = Image.fromarray(save_img)
-						img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+				if batch_idx % check_every_n == 1:
+					if dataset == 'chairs' or dataset == 'celeba':
+						idx = random.sample(range(len(training_images_list)), 2*5)
+						validate_batch_files = [training_images_list[i] for i in idx]
+						[images1, images2] = load_image(dir_name = img_dir, img_names = validate_batch_files)
+					elif dataset == 'dsprites':
+						[images1, images2] = manager.get_next()
 
-						save_img = np.squeeze(reconst1[img_idx])
-						save_img = Image.fromarray(save_img)
-						img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
-				elif dataset == 'celeba':
-					for img_idx in range(len(images1)):
-						sub_dir = "iter_{}".format(num_iter)
+					[reconst1, reconst2, _, _] = get_reconst_img(images1, images2)
 
-						save_img = np.squeeze(images1[img_idx])
-						save_img = Image.fromarray(save_img, 'RGB')
-						img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+					if dataset == 'chairs':
+						for img_idx in range(len(images1)):
+							sub_dir = "iter_{}".format(batch_idx)
 
-						save_img = np.squeeze(reconst1[img_idx])
-						save_img = Image.fromarray(save_img, 'RGB')
-						img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
-				elif dataset == 'dsprites':
-					for img_idx in range(len(images1)):
-						sub_dir = "iter_{}".format(num_iter)
+							save_img = np.squeeze(images1[img_idx])
+							save_img = Image.fromarray(save_img)
+							img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
-						# save_img = images1[img_idx].reshape(64, 64)
-						save_img = np.squeeze(images1[img_idx])
-						save_img = save_img.astype(np.float32)
-						img_file_name = "{}_ori.jpg".format(img_idx)				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+							save_img = np.squeeze(reconst1[img_idx])
+							save_img = Image.fromarray(save_img)
+							img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+					elif dataset == 'celeba':
+						for img_idx in range(len(images1)):
+							sub_dir = "iter_{}".format(batch_idx)
 
-						# save_img = reconst1[img_idx].reshape(64, 64)
-						save_img = np.squeeze(reconst1[img_idx])
-						save_img = save_img.astype(np.float32)
-						img_file_name = "{}_rec.jpg".format(img_idx)				
-						validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)					
+							save_img = np.squeeze(images1[img_idx])
+							save_img = Image.fromarray(save_img, 'RGB')
+							img_file_name = "{}_ori.png".format(validate_batch_files[img_idx].split('.')[0])				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
 
-			if num_iter % loss_check_n == 1:
-				train_writer.add_summary(summary, num_iter)
+							save_img = np.squeeze(reconst1[img_idx])
+							save_img = Image.fromarray(save_img, 'RGB')
+							img_file_name = "{}_rec.png".format(validate_batch_files[img_idx].split('.')[0])				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+					elif dataset == 'dsprites':
+						for img_idx in range(len(images1)):
+							sub_dir = "iter_{}".format(batch_idx)
 
-			if num_iter > 11 and num_iter % save_model_freq == 1:
-				if meta_saved == True:
-					saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = num_iter, write_meta_graph = False)
-				else:
-					print "Save  meta graph"
-					saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = num_iter, write_meta_graph = True)
-					meta_saved = True
+							# save_img = images1[img_idx].reshape(64, 64)
+							save_img = np.squeeze(images1[img_idx])
+							save_img = save_img.astype(np.float32)
+							img_file_name = "{}_ori.jpg".format(img_idx)				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
+
+							# save_img = reconst1[img_idx].reshape(64, 64)
+							save_img = np.squeeze(reconst1[img_idx])
+							save_img = save_img.astype(np.float32)
+							img_file_name = "{}_rec.jpg".format(img_idx)				
+							validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)					
+
+				if batch_idx % loss_check_n == 1:
+					train_writer.add_summary(summary, batch_idx)
+
+			t_epoch_end = time.time()
+			t_epoch_run = t_epoch_end - t_epoch_start
+			if dataset == 'dsprites':
+				t_check = manager.sample_size / t_epoch_run
+
+				warn("==========================================")
+				warn("Run {} th epoch in {} sec: {} images / sec".format(epoch_idx+1, t_epoch_run, t_check))
+				warn("==========================================")
+
+			# if epoch_idx % save_model_freq == 0:
+			if meta_saved == True:
+				saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = epoch_idx, write_meta_graph = False)
+			else:
+				print "Save  meta graph"
+				saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = epoch_idx, write_meta_graph = True)
+				meta_saved = True
 
 	# Testing
 	elif mode == 'test':

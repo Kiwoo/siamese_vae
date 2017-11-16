@@ -62,19 +62,19 @@ def main():
         latent_dim = 32
         loss_weight = {'siam': 50000.0, 'kl': 30000.0}
         batch_size = 32
-        max_iter = 3000000
+        max_epoch = 300
         lr = 0.0001
     elif dataset == 'celeba':
         latent_dim = 32
         loss_weight = {'siam': 1000.0, 'kl': 30000.0}
         batch_size = 512
-        max_iter = 3000000
+        max_epoch = 300
         lr = 0.0001
     elif dataset == 'dsprites':
         latent_dim = 10
         loss_weight = {'siam': 1.0, 'kl': 4.0}
-        batch_size = 16
-        max_iter = 3000000
+        batch_size = 64
+        max_epoch = 300
         lr = 0.001
 
     entangled_feat = latent_dim - disentangled_feat
@@ -107,7 +107,7 @@ def main():
     # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_iter = max_iter, batch_size = batch_size, lr = lr)
+        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
     elif mode == 'test':
         header("Need to be merged")
     else:

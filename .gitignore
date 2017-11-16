@@ -1,0 +1,14 @@
+checkpoints*/*
+*.pyc
+*.png
+*.npy
+rendered_chairs/
+dataset/
+*.gz
+merging_siam_vae/
+test_images/
+val*/
+log*/
+chk*/
+log/*
+*.pyc
