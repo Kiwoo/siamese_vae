@@ -16,6 +16,7 @@ import argparse
 import numpy as np
 from data_manager import DataManager
 
+import tensorflow as tf
 
 def main():
 
@@ -99,7 +100,21 @@ def main():
         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
     elif dataset == 'dsprites':
         import models
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
+
+
+        num_gpus = 2
+        mynets = []
+        with tf.variable_scope(tf.get_variable_scope()):
+            for gid in range(num_gpus):
+                # b_image, b_gclasses, b_glocalisations, b_gscores = \
+                    # _reshape_list(batch_queue.dequeue(), batch_shape)
+                with tf.name_scope('gpu%d' % gid) as scope:
+                    with tf.device('/gpu:%d' % gid):
+                        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
+                        mynets.append(mynet)
+                # Reuse variables for the next tower.
+                tf.get_variable_scope().reuse_variables()
+
     else:
         header("Unknown model name")
 
@@ -107,7 +122,12 @@ def main():
     # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+
+        # mgpu_train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+
+
+
     elif mode == 'test':
         header("Need to be merged")
     else:
