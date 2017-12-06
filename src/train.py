@@ -36,6 +36,8 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     tower_latent_z2_tp = []
     tower_losses = []
     tower_siam_max = []
+    tower_reconst1 = []
+    tower_reconst2 = []
     for gid, model in enumerate(models):
         with tf.name_scope('gpu%d' % gid) as scope:
             with tf.device('/gpu:%d' % gid):
@@ -57,6 +59,8 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                 tower_latent_z2_tp.append(latent_z2_tp)
                 tower_losses.append(losses)
                 tower_siam_max.append(siam_max)
+                tower_reconst1.append(model.reconst1)
+                tower_reconst2.append(model.reconst2)
 
                 tf.summary.scalar('Total Loss', losses[0])
                 tf.summary.scalar('Siam Loss', losses[1])
@@ -67,9 +71,11 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                 tf.summary.scalar('Siam Max', siam_max)
 
     vae_loss = U.mean(tower_vae_loss)
+    siam_max = U.mean(tower_siam_max)
     latent_z1_tp = tf.concat(tower_latent_z1_tp, 0)
     latent_z2_tp = tf.concat(tower_latent_z2_tp, 0)
-    siam_max = U.mean(tower_siam_max)
+    model_reconst1 = tf.concat(tower_reconst1, 0)
+    model_reconst2 = tf.concat(tower_reconst2, 0)
 
     losses = [[] for _ in range(len(losses))]
     for tl in tower_losses:
@@ -91,7 +97,6 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     compute_losses = U.function([img1, img2], vae_loss)
 
     all_var_list = model.get_trainable_variables()
-
     img1_var_list = all_var_list
 
     # with tf.device('/cpu:0'):
@@ -101,7 +106,8 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     merged = tf.summary.merge_all()
     train = U.function([img1, img2],
                         [losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
-    get_reconst_img = U.function([img1, img2], [model.reconst1, model.reconst2, latent_z1_tp, latent_z2_tp])
+
+    get_reconst_img = U.function([img1, img2], [model_reconst1, model_reconst2, latent_z1_tp, latent_z2_tp])
     get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
 
     cur_dir = get_cur_dir()

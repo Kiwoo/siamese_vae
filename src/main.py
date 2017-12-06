@@ -87,6 +87,8 @@ def main():
     sess.__enter__()
     set_global_seeds(0)
 
+    num_gpus = 2
+
     # Model Setting
 
     # (5) Import model, merged into models.py
@@ -101,13 +103,24 @@ def main():
     elif dataset == 'dsprites':
         import models
 
-        num_gpus = 2
+        img_shape = [None, 64, 64, 1]
+        img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=img_shape)
+        img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=img_shape)
+
+        tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
+        tf.assert_equal(tf.floormod(tf.shape(img1)[0], num_gpus), 0)
+
+        img1splits = tf.split(img1, num_gpus, 0)
+        img2splits = tf.split(img2, num_gpus, 0)
+
         mynets = []
         with tf.variable_scope(tf.get_variable_scope()):
             for gid in range(num_gpus):
                 with tf.name_scope('gpu%d' % gid) as scope:
                     with tf.device('/gpu:%d' % gid):
-                        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
+                        mynet = models.mymodel(name="mynet", img1=img1splits[gid], img2=img2splits[gid],
+                                               img_shape=img_shape[1:], latent_dim=latent_dim,
+                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight)
                         mynets.append(mynet)
                 # Reuse variables for the next tower.
                 tf.get_variable_scope().reuse_variables()

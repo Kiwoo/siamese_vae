@@ -10,21 +10,23 @@ class mymodel(object):
 			self._init(*args, **kwargs)
 			self.scope = tf.get_variable_scope().name
 
-	def _init(self, img_shape, latent_dim, disentangled_feat, mode, loss_weight):
+	def _init(self, img1, img2, img_shape, latent_dim, disentangled_feat, mode, loss_weight):
 
 		# (1) batch size
 		sequence_length = None
 
 		# (2) input images, for siamese network, use two image input
-		img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
-		img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
-		self.channel_img = img_shape[2]		
+		# ywpaul [change] inputs are given (for multi-GPU)
+		# img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
+		# img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
 
-		# (3) # of disentangled or entangled features, 
+		self.channel_img = img_shape[2]
+
+		# (3) # of disentangled or entangled features,
 		disentangle_feat_sz = disentangled_feat
 		entangle_feat_sz = latent_dim - disentangle_feat_sz
 
-		# (4) this code is used only when test mode. 
+		# (4) this code is used only when test mode.
 		# [testing -> ]
 		if mode == 'test':
 			img_test = U.get_placeholder(name="img_test", dtype=tf.float32, shape=[sequence_length, img_shape[0], img_shape[1], img_shape[2]])
@@ -50,7 +52,7 @@ class mymodel(object):
 
 		# (9) To use outside of model
 		self.latent_z1 = latent_z1
-		self.latent_z2 = latent_z2		
+		self.latent_z2 = latent_z2
 		self.reconst1 = reconst1
 		self.reconst2 = reconst2
 
@@ -67,7 +69,7 @@ class mymodel(object):
 		# [testing <- ]
 
 		# (10) Preparing Siamese Loss(self.siam_loss), Maximum Wasserstein distance(self.max_siam_loss) in Entangled Features
-		# Used Wasserstein Metric 
+		# Used Wasserstein Metric
 		# Refer: http://djalil.chafai.net/blog/2010/04/30/wasserstein-distance-between-two-gaussians/
 
 		sh_mu1 = mu1[:, 0:entangle_feat_sz]
@@ -91,7 +93,7 @@ class mymodel(object):
 		reconst_error1 = tf.square(reconst1 - img1_scaled)
 		self.reconst_error1 = tf.reduce_sum(reconst_error1, [1, 2, 3])
 		reconst_error2 = tf.square(reconst2 - img2_scaled)
-		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])		
+		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])
 
 		# (13) Total loss is weighted sum of all losses above.
 
