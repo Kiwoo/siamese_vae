@@ -8,7 +8,7 @@ from misc_util import set_global_seeds, read_dataset, get_cur_dir, header, warn
 # from models_2dshapes import mymodel
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
-from train import train_net
+from train import train_net, mgpu_train_net
 # from train_dsprites import train_net
 # from train_curriculum import train_curr_net
 # from test import test_net
@@ -28,7 +28,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset') # chairs, celeba, dsprites
     parser.add_argument('--mode') # train, test
-
     parser.add_argument('--disentangled_feat', type=int)
     args = parser.parse_args()
 
@@ -123,8 +122,8 @@ def main():
 
     if mode == 'train':
 
-        # mgpu_train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
-        train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        mgpu_train_net(models=mynets, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        # train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
 
 
 
