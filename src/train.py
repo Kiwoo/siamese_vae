@@ -89,12 +89,15 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     tf.summary.scalar('Siam Max', siam_max)
 
     compute_losses = U.function([img1, img2], vae_loss)
-    optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
 
     all_var_list = model.get_trainable_variables()
 
     img1_var_list = all_var_list
-    optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
+
+    with tf.device('/cpu:0'):
+        optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
+        optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
+
     merged = tf.summary.merge_all()
     train = U.function([img1, img2],
                         [losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
