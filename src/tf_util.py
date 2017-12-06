@@ -1,3 +1,23 @@
+Skip to content
+Help save net neutrality! A free, open internet is once again at stake—and we need your help.
+Learn more  Dismiss
+This repository
+Search
+Pull requests
+Issues
+Marketplace
+Explore
+ @Kiwoo
+ Sign out
+ Unwatch 3
+  Unstar 1  Fork 0 Kiwoo/siamese_vae Private
+ Code  Issues 0  Pull requests 0  Projects 0  Wiki  Insights  Settings
+Branch: paul/multigpu Find file Copy pathsiamese_vae/src/tf_util.py
+01d4b9f  12 hours ago
+@ywpkwon ywpkwon mgpu working except input
+2 contributors @Kiwoo @ywpkwon
+RawBlameHistory    
+Executable File  818 lines (636 sloc)  26.9 KB
 import numpy as np
 import tensorflow as tf  # pylint: ignore-module
 import builtins
@@ -56,7 +76,6 @@ def switch(condition, then_expression, else_expression):
     """Switches between two operations depending on a scalar value (int or bool).
     Note that both `then_expression` and `else_expression`
     should be symbolic tensors of the *same shape*.
-
     # Arguments
         condition: scalar tensor.
         then_expression: TensorFlow operation.
@@ -138,7 +157,6 @@ class PlacholderTfInput(TfInput):
 class BatchInput(PlacholderTfInput):
     def __init__(self, shape, dtype=tf.float32, name=None):
         """Creates a placeholder for a batch of tensors of a given shape and dtype
-
         Parameters
         ----------
         shape: [int]
@@ -155,9 +173,7 @@ class Uint8Input(PlacholderTfInput):
     def __init__(self, shape, name=None):
         """Takes input in uint8 format which is cast to float32 and divided by 255
         before passing it to the model.
-
         On GPU this ensures lower data transfer times.
-
         Parameters
         ----------
         shape: [int]
@@ -235,6 +251,10 @@ def single_threaded_session():
     """Returns a session which will only use a single CPU"""
     return make_session(1)
 
+def mgpu_session():
+    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
+                                            log_device_placement=True))
+    return sess
 
 ALREADY_INITIALIZED = set()
 
@@ -288,7 +308,7 @@ def load_checkpoints(load_requested = True, checkpoint_dir = get_cur_dir()):
         warn("Could not find old checkpoint")
         if not os.path.exists(checkpoint_dir):
             mkdir_p(checkpoint_dir)
-    return saver, chkpoint_num  
+    return saver, chkpoint_num
 
 def load_state(fname):
     saver = tf.train.Saver()
@@ -425,24 +445,19 @@ def function(inputs, outputs, updates=None, givens=None):
     computed based on those placeholders and produces f(inputs) -> outputs. Function f takes
     values to be fed to the input's placeholders and produces the values of the expressions
     in outputs.
-
     Input values can be passed in the same order as inputs or can be provided as kwargs based
     on placeholder name (passed to constructor or accessible via placeholder.op.name).
-
     Example:
         x = tf.placeholder(tf.int32, (), name="x")
         y = tf.placeholder(tf.int32, (), name="y")
         z = 3 * x + 2 * y
         lin = function([x, y], z, givens={y: 0})
-
         with single_threaded_session():
             initialize()
-
             assert lin(2) == 6
             assert lin(x=3) == 9
             assert lin(2, 2) == 10
             assert lin(x=2, y=3) == 12
-
     Parameters
     ----------
     inputs: [tf.placeholder or TfInput]
@@ -728,14 +743,12 @@ def scope_vars(scope, trainable_only=False):
     """
     Get variables inside a scope
     The scope can be specified as a string
-
     Parameters
     ----------
     scope: str or VariableScope
         scope in which the variables reside.
     trainable_only: bool
         whether or not to return only the variables that were marked as trainable.
-
     Returns
     -------
     vars: [tf.Variable]
@@ -760,11 +773,9 @@ def absolute_scope_name(relative_scope_name):
 def lengths_to_mask(lengths_b, max_length):
     """
     Turns a vector of lengths into a boolean mask
-
     Args:
         lengths_b: an integer vector of lengths
         max_length: maximum length to fill the mask
-
     Returns:
         a boolean array of shape (batch_size, max_length)
         row[i] consists of True repeated lengths_b[i] times, followed by False
@@ -811,3 +822,15 @@ def reset():
     _PLACEHOLDER_CACHE = {}
     VARIABLES = {}
     tf.reset_default_graph()
+© 2017 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+API
+Training
+Shop
+Blog
+About

@@ -8,7 +8,7 @@ from misc_util import set_global_seeds, read_dataset, get_cur_dir, header, warn
 # from models_2dshapes import mymodel
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
-from train import train_net
+from train import train_net, mgpu_train_net
 # from train_dsprites import train_net
 # from train_curriculum import train_curr_net
 # from test import test_net
@@ -16,6 +16,7 @@ import argparse
 import numpy as np
 from data_manager import DataManager
 
+import tensorflow as tf
 
 def main():
 
@@ -27,8 +28,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset') # chairs, celeba, dsprites
     parser.add_argument('--mode') # train, test
-
     parser.add_argument('--disentangled_feat', type=int)
+    parser.add_argument('--num_gpus', type=int, default=1)
     args = parser.parse_args()
 
 
@@ -82,9 +83,12 @@ def main():
     # (4) Open Tensorflow session, Need to find optimal configuration because we don't need to use single thread session
     # Important!!! : If we don't use single threaded session, then we need to change this!!!
 
-    sess = U.single_threaded_session()
+    # sess = U.single_threaded_session()
+    sess = U.mgpu_session()
     sess.__enter__()
     set_global_seeds(0)
+
+    num_gpus = args.num_gpus
 
     # Model Setting
 
@@ -99,7 +103,29 @@ def main():
         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 3], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
     elif dataset == 'dsprites':
         import models
-        mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)
+
+        img_shape = [None, 64, 64, 1]
+        img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=img_shape)
+        img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=img_shape)
+
+        tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
+        tf.assert_equal(tf.floormod(tf.shape(img1)[0], num_gpus), 0)
+
+        img1splits = tf.split(img1, num_gpus, 0)
+        img2splits = tf.split(img2, num_gpus, 0)
+
+        mynets = []
+        with tf.variable_scope(tf.get_variable_scope()):
+            for gid in range(num_gpus):
+                with tf.name_scope('gpu%d' % gid) as scope:
+                    with tf.device('/gpu:%d' % gid):
+                        mynet = models.mymodel(name="mynet", img1=img1splits[gid], img2=img2splits[gid],
+                                               img_shape=img_shape[1:], latent_dim=latent_dim,
+                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight)
+                        mynets.append(mynet)
+                # Reuse variables for the next tower.
+                tf.get_variable_scope().reuse_variables()
+
     else:
         header("Unknown model name")
 
@@ -107,7 +133,11 @@ def main():
     # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-        train_net(model = mynet, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        mgpu_train_net(models=mynets, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        # train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+
+
+
     elif mode == 'test':
         header("Need to be merged")
     else:
@@ -122,4 +152,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
