@@ -100,13 +100,10 @@ def main():
     elif dataset == 'dsprites':
         import models
 
-
         num_gpus = 2
         mynets = []
         with tf.variable_scope(tf.get_variable_scope()):
             for gid in range(num_gpus):
-                # b_image, b_gclasses, b_glocalisations, b_gscores = \
-                    # _reshape_list(batch_queue.dequeue(), batch_shape)
                 with tf.name_scope('gpu%d' % gid) as scope:
                     with tf.device('/gpu:%d' % gid):
                         mynet = models.mymodel(name="mynet", img_shape = [64, 64, 1], latent_dim = latent_dim, disentangled_feat = disentangled_feat, mode = mode, loss_weight= loss_weight)

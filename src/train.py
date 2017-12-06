@@ -28,8 +28,8 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
     tf.assert_equal(tf.floormod(tf.shape(img1)[0], ntowers), 0)
 
-    img1splits = tf.split(0, ntowers, img1)
-    img2splits = tf.split(0, ntowers, img2)
+    img1splits = tf.split(img1, ntowers, 0)
+    img2splits = tf.split(img2, ntowers, 0)
 
     tower_vae_loss = []
     tower_latent_z1_tp = []
@@ -88,12 +88,10 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     tf.summary.scalar('Siam Normal', siam_normal)
     tf.summary.scalar('Siam Max', siam_max)
 
-
     compute_losses = U.function([img1, img2], vae_loss)
     optimizer=tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
 
     all_var_list = model.get_trainable_variables()
-
 
     img1_var_list = all_var_list
     optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
