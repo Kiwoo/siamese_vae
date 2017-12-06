@@ -235,6 +235,10 @@ def single_threaded_session():
     """Returns a session which will only use a single CPU"""
     return make_session(1)
 
+def mgpu_session():
+    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
+                                            log_device_placement=True))
+    return sess
 
 ALREADY_INITIALIZED = set()
 
@@ -288,7 +292,7 @@ def load_checkpoints(load_requested = True, checkpoint_dir = get_cur_dir()):
         warn("Could not find old checkpoint")
         if not os.path.exists(checkpoint_dir):
             mkdir_p(checkpoint_dir)
-    return saver, chkpoint_num  
+    return saver, chkpoint_num
 
 def load_state(fname):
     saver = tf.train.Saver()

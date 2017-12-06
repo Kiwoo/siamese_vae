@@ -77,16 +77,16 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
             losses[i].append(l)
 
     losses = [U.mean(l) for l in losses]
-
     siam_normal = losses[1] / entangled_feat
-    tf.summary.scalar('Total Loss', losses[0])
-    tf.summary.scalar('Siam Loss', losses[1])
-    tf.summary.scalar('kl1_loss', losses[2])
-    tf.summary.scalar('kl2_loss', losses[3])
-    tf.summary.scalar('reconst_err1', losses[4])
-    tf.summary.scalar('reconst_err2', losses[5])
-    tf.summary.scalar('Siam Normal', siam_normal)
-    tf.summary.scalar('Siam Max', siam_max)
+
+    tf.summary.scalar('total/Total Loss', losses[0])
+    tf.summary.scalar('total/Siam Loss', losses[1])
+    tf.summary.scalar('total/kl1_loss', losses[2])
+    tf.summary.scalar('total/kl2_loss', losses[3])
+    tf.summary.scalar('total/reconst_err1', losses[4])
+    tf.summary.scalar('total/reconst_err2', losses[5])
+    tf.summary.scalar('total/Siam Normal', siam_normal)
+    tf.summary.scalar('total/Siam Max', siam_max)
 
     compute_losses = U.function([img1, img2], vae_loss)
 
@@ -94,9 +94,9 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
 
     img1_var_list = all_var_list
 
-    with tf.device('/cpu:0'):
-        optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
-        optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
+    # with tf.device('/cpu:0'):
+    optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
+    optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
 
     merged = tf.summary.merge_all()
     train = U.function([img1, img2],

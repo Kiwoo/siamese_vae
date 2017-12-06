@@ -82,7 +82,8 @@ def main():
     # (4) Open Tensorflow session, Need to find optimal configuration because we don't need to use single thread session
     # Important!!! : If we don't use single threaded session, then we need to change this!!!
 
-    sess = U.single_threaded_session()
+    # sess = U.single_threaded_session()
+    sess = U.mgpu_session()
     sess.__enter__()
     set_global_seeds(0)
 
