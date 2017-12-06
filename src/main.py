@@ -29,6 +29,7 @@ def main():
     parser.add_argument('--dataset') # chairs, celeba, dsprites
     parser.add_argument('--mode') # train, test
     parser.add_argument('--disentangled_feat', type=int)
+    parser.add_argument('--num_gpus', type=int, default=1)
     args = parser.parse_args()
 
 
@@ -87,7 +88,7 @@ def main():
     sess.__enter__()
     set_global_seeds(0)
 
-    num_gpus = 2
+    num_gpus = args.num_gpus
 
     # Model Setting
 
@@ -132,7 +133,6 @@ def main():
     # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-
         mgpu_train_net(models=mynets, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
         # train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
 
