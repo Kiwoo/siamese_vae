@@ -224,6 +224,7 @@ def make_session(num_cpu):
         inter_op_parallelism_threads=num_cpu,
         intra_op_parallelism_threads=num_cpu)
     tf_config.gpu_options.per_process_gpu_memory_fraction = 0.4
+    #tf_config.gpu_options.allow_growth=True
     return tf.Session(config=tf_config)
 
 
@@ -232,8 +233,11 @@ def single_threaded_session():
     return make_session(1)
 
 def mgpu_session():
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
-                                            log_device_placement=True))
+    
+    tf_config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+    tf_config.gpu_options.allow_growth = True
+
+    sess = tf.Session(config = tf_config)
     return sess
 
 ALREADY_INITIALIZED = set()

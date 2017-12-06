@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-from misc_util import set_global_seeds
+#import numpy as np
+
+import tensorflow as tf
 import tf_util as U
 import os.path as osp
 import sys
@@ -16,7 +18,6 @@ import argparse
 import numpy as np
 from data_manager import DataManager
 
-import tensorflow as tf
 
 def main():
 
