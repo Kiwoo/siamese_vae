@@ -131,7 +131,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
         warn("Unknown dataset Error")
         # break
 
-    warn(img_dir)
+    warn("dataset: {}".format(dataset))
     if dataset == 'chairs' or dataset == 'celeba':
         training_images_list = read_dataset(img_dir)
         n_total_train_data = len(training_images_list)
@@ -186,7 +186,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
 
                     if dataset == 'chairs':
                         for img_idx in range(len(images1)):
-                            sub_dir = "iter_{}".format(batch_idx)
+                            sub_dir = "iter_{}_{}".format(epoch_idx, batch_idx)
 
                             save_img = np.squeeze(images1[img_idx])
                             save_img = Image.fromarray(save_img)
@@ -199,7 +199,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                             validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
                     elif dataset == 'celeba':
                         for img_idx in range(len(images1)):
-                            sub_dir = "iter_{}".format(batch_idx)
+                            sub_dir = "iter_{}_{}".format(epoch_idx, batch_idx)
 
                             save_img = np.squeeze(images1[img_idx])
                             save_img = Image.fromarray(save_img, 'RGB')
@@ -212,7 +212,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                             validate_img_saver.save(save_img, img_file_name, sub_dir = sub_dir)
                     elif dataset == 'dsprites':
                         for img_idx in range(len(images1)):
-                            sub_dir = "iter_{}".format(batch_idx)
+                            sub_dir = "iter_{}_{}".format(epoch_idx, batch_idx)
 
                             # save_img = images1[img_idx].reshape(64, 64)
                             save_img = np.squeeze(images1[img_idx])
