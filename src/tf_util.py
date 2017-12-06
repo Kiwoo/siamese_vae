@@ -1,23 +1,3 @@
-Skip to content
-Help save net neutrality! A free, open internet is once again at stake—and we need your help.
-Learn more  Dismiss
-This repository
-Search
-Pull requests
-Issues
-Marketplace
-Explore
- @Kiwoo
- Sign out
- Unwatch 3
-  Unstar 1  Fork 0 Kiwoo/siamese_vae Private
- Code  Issues 0  Pull requests 0  Projects 0  Wiki  Insights  Settings
-Branch: paul/multigpu Find file Copy pathsiamese_vae/src/tf_util.py
-01d4b9f  12 hours ago
-@ywpkwon ywpkwon mgpu working except input
-2 contributors @Kiwoo @ywpkwon
-RawBlameHistory    
-Executable File  818 lines (636 sloc)  26.9 KB
 import numpy as np
 import tensorflow as tf  # pylint: ignore-module
 import builtins
@@ -822,15 +802,3 @@ def reset():
     _PLACEHOLDER_CACHE = {}
     VARIABLES = {}
     tf.reset_default_graph()
-© 2017 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Help
-Contact GitHub
-API
-Training
-Shop
-Blog
-About
