@@ -38,6 +38,20 @@ class DataManager(object):
 	def get_len(self):
 		return self.max_batch
 
+	def get_image_fixed_feat_batch(self, feat, batch):
+		# k in beta-VAE paper		
+		images = []
+		for b in range(2*batch):
+			feature = []
+			fixed_feat_value = np.randint(latents_sizes[feat])
+			for i in range(len(latents_sizes)):
+				feature[i] = np.randint(latents_sizes[i])
+			if b % 2 == 0:
+				fixed_feat_value = feature[feat]
+			if b % 2 == 1:
+				feature[feat] = fixed_feat_value					
+			images.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4], feature[5]))
+		return images
 
 	def get_image(self, shape=0, scale=0, orientation=0, x=0, y=0):
 		latents = [0, shape, scale, orientation, x, y]
