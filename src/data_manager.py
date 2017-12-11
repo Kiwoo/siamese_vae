@@ -40,17 +40,18 @@ class DataManager(object):
 
 	def get_image_fixed_feat_batch(self, feat, batch):
 		# k in beta-VAE paper		
+		# color: latents_sizes[0] is fixed as 0
+		# feat starts from 0 to 4. 0: shape, 1: scale, ... 
 		images = []
+		feature = np.zeros(len(latents_sizes)-1)
 		for b in range(2*batch):
-			feature = []
-			fixed_feat_value = np.randint(latents_sizes[feat])
-			for i in range(len(latents_sizes)):
-				feature[i] = np.randint(latents_sizes[i])
+			for i in range(len(latents_sizes)-1):
+				feature[i] = np.random.randint(latents_sizes[i+1])
 			if b % 2 == 0:
 				fixed_feat_value = feature[feat]
 			if b % 2 == 1:
 				feature[feat] = fixed_feat_value					
-			images.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4], feature[5]))
+			images.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4]))
 		return images
 
 	def get_image(self, shape=0, scale=0, orientation=0, x=0, y=0):
