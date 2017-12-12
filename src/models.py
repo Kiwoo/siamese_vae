@@ -108,29 +108,29 @@ class mymodel(object):
 
 	def classifier_net(self, z1, z2, feat_size, cls_batch_size):
 		z_diff = U.sum(z1-z2, axis = 0) / cls_batch_size
-		return U.dense(z_diff, feat_size, 'cls1', U.normc_initializer(1.0))
+		return U.dense(z_diff, feat_size, 'cls_fc1', U.normc_initializer(1.0))
 
 	def encoder_net(self, img, latent_dim):
 		x = img
-		x = tf.nn.relu(U.conv2d(x, 32, "c1", [4, 4], [2, 2], pad = "SAME")) # [32, 32, 32]
-		x = tf.nn.relu(U.conv2d(x, 32, "c2", [4, 4], [2, 2], pad = "SAME")) # [16, 16, 32]
-		x = tf.nn.relu(U.conv2d(x, 64, "c3", [4, 4], [2, 2], pad = "SAME")) # [8, 8, 64]
-		x = tf.nn.relu(U.conv2d(x, 64, "c4", [4, 4], [2, 2], pad = "SAME")) # [4, 4, 64]
+		x = tf.nn.relu(U.conv2d(x, 32, "vae_enc_c1", [4, 4], [2, 2], pad = "SAME")) # [32, 32, 32]
+		x = tf.nn.relu(U.conv2d(x, 32, "vae_enc_c2", [4, 4], [2, 2], pad = "SAME")) # [16, 16, 32]
+		x = tf.nn.relu(U.conv2d(x, 64, "vae_enc_c3", [4, 4], [2, 2], pad = "SAME")) # [8, 8, 64]
+		x = tf.nn.relu(U.conv2d(x, 64, "vae_enc_c4", [4, 4], [2, 2], pad = "SAME")) # [4, 4, 64]
 		x = U.flattenallbut0(x) # [1024]
-		x = tf.nn.relu(U.dense(x, 256, 'l1', U.normc_initializer(1.0))) # 1024
-		mu = U.dense(x, latent_dim, 'l1_1', U.normc_initializer(1.0)) # 32
-		logvar = U.dense(x, latent_dim, 'l1_2', U.normc_initializer(1.0)) # 32
+		x = tf.nn.relu(U.dense(x, 256, 'vae_enc_l1', U.normc_initializer(1.0))) # 1024
+		mu = U.dense(x, latent_dim, 'vae_enc_l1_1', U.normc_initializer(1.0)) # 32
+		logvar = U.dense(x, latent_dim, 'vae_enc_l1_2', U.normc_initializer(1.0)) # 32
 		return mu, logvar
 
 	def decoder_net(self, latent_variable):
 		x = latent_variable
-		x = U.dense(x, 256, 'l2', U.normc_initializer(1.0))
-		x = tf.nn.relu(U.dense(x, 1024, 'l3', U.normc_initializer(1.0)))
+		x = U.dense(x, 256, 'vae_dec_l2', U.normc_initializer(1.0))
+		x = tf.nn.relu(U.dense(x, 1024, 'vae_dec_l3', U.normc_initializer(1.0)))
 		x = tf.reshape(x, [tf.shape(x)[0], 4,4,64]) # Unflatten [4, 4, 64]
-		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,64,64], [tf.shape(x)[0], 8,8,64], "uc1", [2, 2], pad="SAME")) # [8, 8, 64]
-		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,64], [tf.shape(x)[0], 16,16,32], "uc2", [2, 2], pad="SAME")) # [16, 16, 32]
-		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,32], [tf.shape(x)[0], 32,32,32], "uc3", [2, 2], pad="SAME")) # [32, 32, 32]
-		x = U.conv2d_transpose(x, [4,4,self.channel_img, 32], [tf.shape(x)[0], 64,64,self.channel_img], "uc4", [2, 2], pad="SAME") # [64, 64, channel_img = 1 or 3]
+		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,64,64], [tf.shape(x)[0], 8,8,64], "vae_dec_uc1", [2, 2], pad="SAME")) # [8, 8, 64]
+		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,64], [tf.shape(x)[0], 16,16,32], "vae_dec_uc2", [2, 2], pad="SAME")) # [16, 16, 32]
+		x = tf.nn.relu(U.conv2d_transpose(x, [4,4,32,32], [tf.shape(x)[0], 32,32,32], "vae_dec_uc3", [2, 2], pad="SAME")) # [32, 32, 32]
+		x = U.conv2d_transpose(x, [4,4,self.channel_img, 32], [tf.shape(x)[0], 64,64,self.channel_img], "vae_dec_uc4", [2, 2], pad="SAME") # [64, 64, channel_img = 1 or 3]
 		return x
 
 	def sample_latent_var(self, mu, logvar):

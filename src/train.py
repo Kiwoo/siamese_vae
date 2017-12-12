@@ -101,15 +101,25 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     compute_losses = U.function([img1, img2], vae_loss)
 
     all_var_list = model.get_trainable_variables()
-    img1_var_list = all_var_list
+    vae_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vae")]
+    cls_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("cls")]
+    warn(all_var_list)
+    warn(vae_var_list)
+    warn(cls_var_list)
 
     # with tf.device('/cpu:0'):
     optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
-    optimize_expr1 = optimizer.minimize(vae_loss, var_list=img1_var_list)
+    optimize_expr1 = optimizer.minimize(vae_loss, var_list=vae_var_list)
+
+    feat_cls_optimizer = tf.train(AdagradOptimizer(learning_rate=0.01))
+    optimize_expr2 = feat_cls_optimizer.minimize(cls_loss, var_list=cls_var_list)
 
     merged = tf.summary.merge_all()
     train = U.function([img1, img2],
                         [losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
+
+    classifier_train = U.function([img1, img2],
+                        [cls_loss, latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr2])
 
     get_reconst_img = U.function([img1, img2], [model_reconst1, model_reconst2, latent_z1_tp, latent_z2_tp])
     get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
@@ -242,6 +252,14 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                 warn("Run {} th epoch in {} sec: {} images / sec".format(epoch_idx+1, t_epoch_run, t_check))
                 warn("==========================================")
 
+            if dataset == 'dsprites':
+                # At every epoch, train classifier and check result
+                # (1) Load images
+                [images1, images2] = manager.get_image_fixed_feat_batch(feat, batch)
+
+                # (2) Input PH images
+                # (3) Train for N times
+                # (4) Check accuracy and save the result
             # if epoch_idx % save_model_freq == 0:
             if meta_saved == True:
                 saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = epoch_idx, write_meta_graph = False)

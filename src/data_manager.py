@@ -38,13 +38,13 @@ class DataManager(object):
 	def get_len(self):
 		return self.max_batch
 
-	def get_image_fixed_feat_batch(self, feat, batch):
+	def get_image_fixed_feat_batch(self, feat, batch_size):
 		# k in beta-VAE paper		
 		# color: latents_sizes[0] is fixed as 0
 		# feat starts from 0 to 4. 0: shape, 1: scale, ... 
 		images = []
 		feature = np.zeros(len(latents_sizes)-1)
-		for b in range(2*batch):
+		for b in range(2*batch_size):
 			for i in range(len(latents_sizes)-1):
 				feature[i] = np.random.randint(latents_sizes[i+1])
 			if b % 2 == 0:
