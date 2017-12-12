@@ -38,6 +38,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     tower_siam_max = []
     tower_reconst1 = []
     tower_reconst2 = []
+    tower_cls_loss = []
     for gid, model in enumerate(models):
         with tf.name_scope('gpu%d' % gid) as scope:
             with tf.device('/gpu:%d' % gid):
@@ -53,6 +54,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                           U.mean(model.reconst_error2),
                           ]
                 siam_max = U.mean(model.max_siam_loss)
+                cls_loss = U.mean(model.cls_loss)
 
                 tower_vae_loss.append(vae_loss)
                 tower_latent_z1_tp.append(latent_z1_tp)
@@ -61,6 +63,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
                 tower_siam_max.append(siam_max)
                 tower_reconst1.append(model.reconst1)
                 tower_reconst2.append(model.reconst2)
+                tower_cls_loss.append(cls_loss)
 
                 tf.summary.scalar('Total Loss', losses[0])
                 tf.summary.scalar('Siam Loss', losses[1])
@@ -76,6 +79,7 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
     latent_z2_tp = tf.concat(tower_latent_z2_tp, 0)
     model_reconst1 = tf.concat(tower_reconst1, 0)
     model_reconst2 = tf.concat(tower_reconst2, 0)
+    cls_loss = U.mean(tower_cls_loss)
 
     losses = [[] for _ in range(len(losses))]
     for tl in tower_losses:

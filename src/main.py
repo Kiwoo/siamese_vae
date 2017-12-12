@@ -78,6 +78,8 @@ def main():
         batch_size = 64
         max_epoch = 300
         lr = 0.001
+        feat_size = 5 # shape, rotation, size, x, y => Don't know why there are only 4 features in paper p6. Need to check more about it.
+        cls_batch_size = 10
 
     entangled_feat = latent_dim - disentangled_feat
 
@@ -109,11 +111,17 @@ def main():
         img1 = U.get_placeholder(name="img1", dtype=tf.float32, shape=img_shape)
         img2 = U.get_placeholder(name="img2", dtype=tf.float32, shape=img_shape)
 
+        feat_cls = U.get_placeholder(name="feat_cls", dtype=tf.int32, shape=None)
+
         tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
         tf.assert_equal(tf.floormod(tf.shape(img1)[0], num_gpus), 0)
 
+        tf.assert_equal(tf.floormod(tf.shape(feat_cls)[0], num_gpus), 0)
+
         img1splits = tf.split(img1, num_gpus, 0)
         img2splits = tf.split(img2, num_gpus, 0)
+
+        feat_cls_splits = tf.split(feat_cls, num_gpus, 0)
 
         mynets = []
         with tf.variable_scope(tf.get_variable_scope()):
@@ -122,7 +130,7 @@ def main():
                     with tf.device('/gpu:%d' % gid):
                         mynet = models.mymodel(name="mynet", img1=img1splits[gid], img2=img2splits[gid],
                                                img_shape=img_shape[1:], latent_dim=latent_dim,
-                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight)
+                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight, feat_cls = feat_cls_splits[gid], feat_size = feat_size, cls_batch_size = cls_batch_size)
                         mynets.append(mynet)
                 # Reuse variables for the next tower.
                 tf.get_variable_scope().reuse_variables()

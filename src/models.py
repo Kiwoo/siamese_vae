@@ -10,7 +10,7 @@ class mymodel(object):
 			self._init(*args, **kwargs)
 			self.scope = tf.get_variable_scope().name
 
-	def _init(self, img1, img2, img_shape, latent_dim, disentangled_feat, mode, loss_weight):
+	def _init(self, img1, img2, img_shape, latent_dim, disentangled_feat, mode, loss_weight, feat_cls, feat_size, cls_batch_size):
 
 		# (1) batch size
 		sequence_length = None
@@ -95,11 +95,20 @@ class mymodel(object):
 		reconst_error2 = tf.square(reconst2 - img2_scaled)
 		self.reconst_error2 = tf.reduce_sum(reconst_error2, [1, 2, 3])
 
+		# (12-1) Add Classifier net and C.E. loss of softmax for classifier.
+
+		pred_feat_cls = self.classifier_net(latent_z1, latent_z2, feat_size, cls_batch_size)
+		feat_cls = tf.one_hot(indices = feat_cls, depth = feat_size)
+		self.cls_loss = tf.nn.softmax_cross_entropy_with_logits(labels=feat_cls, logits=pred_feat_cls)
+
 		# (13) Total loss is weighted sum of all losses above.
 
 		self.vaeloss = loss_weight['siam']*self.siam_loss + loss_weight['kl']*self.kl_loss1 + loss_weight['kl']*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
+	def classifier_net(self, z1, z2, feat_size, cls_batch_size):
+		z_diff = U.sum(z1-z2, axis = 0) / cls_batch_size
+		return U.dense(z_diff, feat_size, 'cls1', U.normc_initializer(1.0))
 
 	def encoder_net(self, img, latent_dim):
 		x = img
