@@ -142,7 +142,7 @@ def main():
     # Testing by adding noise on latent feature is not merged yet. Will be finished soon.
 
     if mode == 'train':
-        mgpu_train_net(models=mynets, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+        mgpu_train_net(models=mynets, num_gpus = num_gpus, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
         # train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
 
 

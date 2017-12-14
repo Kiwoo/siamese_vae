@@ -19,7 +19,7 @@ slim = tf.contrib.slim
 from tensorflow.python.ops import control_flow_ops
 
 
-def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
+def mgpu_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
     img1 = U.get_placeholder_cached(name="img1")
     img2 = U.get_placeholder_cached(name="img2")
 
@@ -255,7 +255,11 @@ def mgpu_train_net(models, mode, img_dir, dataset, chkfile_name, logfile_name, v
             if dataset == 'dsprites':
                 # At every epoch, train classifier and check result
                 # (1) Load images
-                [images1, images2] = manager.get_image_fixed_feat_batch(feat, batch)
+                L = 10
+                cls_batch = 5
+                num_cls_set = L * num_gpus * cls_batch
+                feat = np.random.randint(manager.latents_sizes-1, )
+                [images1, images2] = manager.get_image_fixed_feat_batch(feat, num_cls_set)
 
                 # (2) Input PH images
                 # (3) Train for N times
