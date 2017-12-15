@@ -10,7 +10,7 @@ from misc_util import set_global_seeds, read_dataset, get_cur_dir, header, warn
 # from models_2dshapes import mymodel
 # from models_celeba import mymodel
 # from models_curriculum import mymodel_curr
-from train import train_net, mgpu_train_net
+from train import train_net, mgpu_train_net, mgpu_classifier_train_net
 # from train_dsprites import train_net
 # from train_curriculum import train_curr_net
 # from test import test_net
@@ -79,7 +79,8 @@ def main():
         max_epoch = 300
         lr = 0.001
         feat_size = 5 # shape, rotation, size, x, y => Don't know why there are only 4 features in paper p6. Need to check more about it.
-        cls_batch_size = 10
+        batch_per_gpu = 15
+        L = 20
 
     entangled_feat = latent_dim - disentangled_feat
 
@@ -130,7 +131,7 @@ def main():
                     with tf.device('/gpu:%d' % gid):
                         mynet = models.mymodel(name="mynet", img1=img1splits[gid], img2=img2splits[gid],
                                                img_shape=img_shape[1:], latent_dim=latent_dim,
-                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight, feat_cls = feat_cls_splits[gid], feat_size = feat_size, cls_batch_size = cls_batch_size)
+                                               disentangled_feat=disentangled_feat, mode=mode, loss_weight=loss_weight, feat_cls = feat_cls_splits[gid], feat_size = feat_size, L = L, batch_per_gpu = batch_per_gpu)
                         mynets.append(mynet)
                 # Reuse variables for the next tower.
                 tf.get_variable_scope().reuse_variables()
@@ -144,6 +145,9 @@ def main():
     if mode == 'train':
         mgpu_train_net(models=mynets, num_gpus = num_gpus, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
         # train_net(model=mynets[0], mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
+    elif mode == 'classifier_train':
+        warn("Classifier Train")
+        mgpu_classifier_train_net(models=mynets, num_gpus = num_gpus, mode = mode, img_dir = img_dir, dataset = dataset, chkfile_name = chkfile_name, logfile_name = logfile_name, validatefile_name = validatefile_name, entangled_feat = entangled_feat, max_epoch = max_epoch, batch_size = batch_size, lr = lr)
 
 
 

@@ -16,6 +16,7 @@ class DataManager(object):
 
 		# Define number of values per latents and functions to convert to indices
 		latents_sizes = metadata['latents_sizes']
+		self.latents_sizes = latents_sizes
 		# [ 1,  3,  6, 40, 32, 32]
 		# color, shape, scale, orientation, posX, posY
 
@@ -39,22 +40,31 @@ class DataManager(object):
 	def get_len(self):
 		return self.max_batch
 
-	def get_image_fixed_feat_batch(self, feat, num_cls_set):
+	def get_image_fixed_feat_batch(self, feats, num_img_pair):
 		# k in beta-VAE paper		
 		# color: latents_sizes[0] is fixed as 0
 		# feat starts from 0 to 4. 0: shape, 1: scale, ... 
+
+        # L = 10
+        # batch_per_gpu = 5
+        # num_img_pair = L * num_gpus * batch_per_gpu
+        # feat = np.random.randint(manager.latents_sizes-1, num_gpus * batch_per_gpu)
+
 		images = []
-		feature = np.zeros(len(latents_sizes)-1)
-		for b in range(batch_size):
+		feature = np.zeros(len(self.latents_sizes)-1)
+
+		L = num_img_pair / len(feats)
+		for feat in feats:
 			for l in range(2*L):
-				for i in range(len(latents_sizes)-1):
-					feature[i] = np.random.randint(latents_sizes[i+1])
-				if b % 2 == 0:
+				for i in range(len(self.latents_sizes)-1):
+					feature[i] = np.random.randint(self.latents_sizes[i+1])
+				if l % 2 == 0:
 					fixed_feat_value = feature[feat]
-				if b % 2 == 1:
+				if l % 2 == 1:
 					feature[feat] = fixed_feat_value					
 				images.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4]))
 		return images
+
 
 	def get_image(self, shape=0, scale=0, orientation=0, x=0, y=0):
 		latents = [0, shape, scale, orientation, x, y]

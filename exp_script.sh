@@ -26,5 +26,6 @@ export PYTHONUNBUFFERED="True"
 # ./src/main.py --dataset chairs --mode train --disentangled_feat 3
 
 # dsprites
-./src/main.py --dataset dsprites --mode train --disentangled_feat 1 --num_gpus 4
+# ./src/main.py --dataset dsprites --mode train --disentangled_feat 1 --num_gpus 1
+./src/main.py --dataset dsprites --mode classifier_train --disentangled_feat 1 --num_gpus 1
 # ./src/main.py --dataset dsprites --mode train --disentangled_feat 2

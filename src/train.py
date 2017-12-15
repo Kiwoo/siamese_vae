@@ -23,6 +23,8 @@ def mgpu_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfi
     img1 = U.get_placeholder_cached(name="img1")
     img2 = U.get_placeholder_cached(name="img2")
 
+    feat_cls = U.get_placeholder_cached(name="feat_cls")
+
     # batch size must be multiples of ntowers (# of GPUs)
     ntowers = len(models)
     tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
@@ -101,25 +103,27 @@ def mgpu_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfi
     compute_losses = U.function([img1, img2], vae_loss)
 
     all_var_list = model.get_trainable_variables()
-    vae_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vae")]
-    cls_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("cls")]
-    warn(all_var_list)
-    warn(vae_var_list)
-    warn(cls_var_list)
+    vae_var_list = [v for v in all_var_list if v.name.split("/")[2].startswith("vae")]
+    cls_var_list = [v for v in all_var_list if v.name.split("/")[2].startswith("cls")]
+
+    warn("{}".format(all_var_list))
+    warn("==========================")
+    warn("{}".format(vae_var_list))
+    # warn("==========================")
+    # warn("{}".format(cls_var_list))
 
     # with tf.device('/cpu:0'):
     optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
     optimize_expr1 = optimizer.minimize(vae_loss, var_list=vae_var_list)
 
-    feat_cls_optimizer = tf.train(AdagradOptimizer(learning_rate=0.01))
+    feat_cls_optimizer = tf.train.AdagradOptimizer(learning_rate=0.01)
     optimize_expr2 = feat_cls_optimizer.minimize(cls_loss, var_list=cls_var_list)
+
 
     merged = tf.summary.merge_all()
     train = U.function([img1, img2],
                         [losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
 
-    classifier_train = U.function([img1, img2],
-                        [cls_loss, latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr2])
 
     get_reconst_img = U.function([img1, img2], [model_reconst1, model_reconst2, latent_z1_tp, latent_z2_tp])
     get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
@@ -252,25 +256,172 @@ def mgpu_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfi
                 warn("Run {} th epoch in {} sec: {} images / sec".format(epoch_idx+1, t_epoch_run, t_check))
                 warn("==========================================")
 
-            if dataset == 'dsprites':
-                # At every epoch, train classifier and check result
-                # (1) Load images
-                L = 10
-                cls_batch = 5
-                num_cls_set = L * num_gpus * cls_batch
-                feat = np.random.randint(manager.latents_sizes-1, )
-                [images1, images2] = manager.get_image_fixed_feat_batch(feat, num_cls_set)
 
-                # (2) Input PH images
-                # (3) Train for N times
-                # (4) Check accuracy and save the result
-            # if epoch_idx % save_model_freq == 0:
             if meta_saved == True:
                 saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = epoch_idx, write_meta_graph = False)
             else:
                 print "Save  meta graph"
                 saver.save(U.get_session(), chk_save_dir + '/' + 'checkpoint', global_step = epoch_idx, write_meta_graph = True)
                 meta_saved = True
+
+           
+
+def mgpu_classifier_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
+    img1 = U.get_placeholder_cached(name="img1")
+    img2 = U.get_placeholder_cached(name="img2")
+
+    feat_cls = U.get_placeholder_cached(name="feat_cls")
+
+    # batch size must be multiples of ntowers (# of GPUs)
+    ntowers = len(models)
+    tf.assert_equal(tf.shape(img1)[0], tf.shape(img2)[0])
+    tf.assert_equal(tf.floormod(tf.shape(img1)[0], ntowers), 0)
+
+    img1splits = tf.split(img1, ntowers, 0)
+    img2splits = tf.split(img2, ntowers, 0)
+
+    tower_vae_loss = []
+    tower_latent_z1_tp = []
+    tower_latent_z2_tp = []
+    tower_losses = []
+    tower_siam_max = []
+    tower_reconst1 = []
+    tower_reconst2 = []
+    tower_cls_loss = []
+    for gid, model in enumerate(models):
+        with tf.name_scope('gpu%d' % gid) as scope:
+            with tf.device('/gpu:%d' % gid):
+
+                vae_loss = U.mean(model.vaeloss)
+                latent_z1_tp = model.latent_z1
+                latent_z2_tp = model.latent_z2
+                losses = [U.mean(model.vaeloss),
+                          U.mean(model.siam_loss),
+                          U.mean(model.kl_loss1),
+                          U.mean(model.kl_loss2),
+                          U.mean(model.reconst_error1),
+                          U.mean(model.reconst_error2),
+                          ]
+                siam_max = U.mean(model.max_siam_loss)
+                cls_loss = U.mean(model.cls_loss)
+
+                tower_vae_loss.append(vae_loss)
+                tower_latent_z1_tp.append(latent_z1_tp)
+                tower_latent_z2_tp.append(latent_z2_tp)
+                tower_losses.append(losses)
+                tower_siam_max.append(siam_max)
+                tower_reconst1.append(model.reconst1)
+                tower_reconst2.append(model.reconst2)
+                tower_cls_loss.append(cls_loss)
+
+                tf.summary.scalar('Cls Loss', cls_loss)
+
+    vae_loss = U.mean(tower_vae_loss)
+    siam_max = U.mean(tower_siam_max)
+    latent_z1_tp = tf.concat(tower_latent_z1_tp, 0)
+    latent_z2_tp = tf.concat(tower_latent_z2_tp, 0)
+    model_reconst1 = tf.concat(tower_reconst1, 0)
+    model_reconst2 = tf.concat(tower_reconst2, 0)
+    cls_loss = U.mean(tower_cls_loss)
+
+    losses = [[] for _ in range(len(losses))]
+    for tl in tower_losses:
+        for i, l in enumerate(tl):
+            losses[i].append(l)
+
+    losses = [U.mean(l) for l in losses]
+    siam_normal = losses[1] / entangled_feat
+
+    tf.summary.scalar('total/cls_loss', cls_loss)
+
+    compute_losses = U.function([img1, img2], vae_loss)
+
+    all_var_list = model.get_trainable_variables()
+    vae_var_list = [v for v in all_var_list if v.name.split("/")[2].startswith("vae")]
+    cls_var_list = [v for v in all_var_list if v.name.split("/")[2].startswith("cls")]
+    warn("{}".format(all_var_list))
+    warn("=======================")
+    warn("{}".format(vae_var_list))
+    warn("=======================")
+    warn("{}".format(cls_var_list))
+
+    # with tf.device('/cpu:0'):
+    # optimizer = tf.train.AdamOptimizer(learning_rate=lr, epsilon = 0.01/batch_size)
+    # optimize_expr1 = optimizer.minimize(vae_loss, var_list=vae_var_list)
+
+    feat_cls_optimizer = tf.train.AdagradOptimizer(learning_rate=0.01)
+    optimize_expr2 = feat_cls_optimizer.minimize(cls_loss, var_list=cls_var_list)
+
+    merged = tf.summary.merge_all()
+    # train = U.function([img1, img2],
+    #                     [losses[0], losses[1], losses[2], losses[3], losses[4], losses[5], latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr1])
+
+    classifier_train = U.function([img1, img2, feat_cls],
+                        [cls_loss, latent_z1_tp, latent_z2_tp, merged], updates = [optimize_expr2])
+
+    get_reconst_img = U.function([img1, img2], [model_reconst1, model_reconst2, latent_z1_tp, latent_z2_tp])
+    get_latent_var = U.function([img1, img2], [latent_z1_tp, latent_z2_tp])
+
+    cur_dir = get_cur_dir()
+    chk_save_dir = os.path.join(cur_dir, chkfile_name)
+    log_save_dir = os.path.join(cur_dir, logfile_name)
+    cls_logfile_name = 'cls_{}'.format(logfile_name)
+    cls_log_save_dir = os.path.join(cur_dir, cls_logfile_name)
+    validate_img_saver_dir = os.path.join(cur_dir, validatefile_name)
+    if dataset == 'chairs' or dataset == 'celeba':
+        test_img_saver_dir = os.path.join(cur_dir, "test_images")
+        testing_img_dir = os.path.join(cur_dir, "dataset/{}/test_img".format(dataset))
+
+    cls_train_writer = U.summary_writer(dir = cls_log_save_dir)
+
+    U.initialize()
+
+    saver, chk_file_epoch_num = U.load_checkpoints(load_requested = True, checkpoint_dir = chk_save_dir)
+    if dataset == 'chairs' or dataset == 'celeba':
+        validate_img_saver = Img_Saver(Img_dir = validate_img_saver_dir)
+    elif dataset == 'dsprites':
+        validate_img_saver = BW_Img_Saver(Img_dir = validate_img_saver_dir) # Black and White, temporary usage
+    else:
+        warn("Unknown dataset Error")
+        # break
+
+    warn("dataset: {}".format(dataset))
+    if dataset == 'chairs' or dataset == 'celeba':
+        training_images_list = read_dataset(img_dir)
+        n_total_train_data = len(training_images_list)
+        testing_images_list = read_dataset(testing_img_dir)
+        n_total_testing_data = len(testing_images_list)
+    elif dataset == 'dsprites':
+        cur_dir = osp.join(cur_dir, 'dataset')
+        cur_dir = osp.join(cur_dir, 'dsprites')
+        img_dir = osp.join(cur_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+        manager = DataManager(img_dir, batch_size)
+    else:
+        warn("Unknown dataset Error")
+        # break
+
+    meta_saved = False
+
+    cls_train_iter = 10000
+    for cls_train_i in range(cls_train_iter):
+        warn("Train:{}".format(cls_train_i))
+        if dataset == 'dsprites':
+            # At every epoch, train classifier and check result
+            # (1) Load images
+            L = 10
+            batch_per_gpu = 5
+            num_img_pair = L * num_gpus * batch_per_gpu
+            warn("{} {} {}".format(len(manager.latents_sizes)-1, num_gpus, batch_per_gpu))
+            feat = np.random.randint(len(manager.latents_sizes)-1, size = num_gpus * batch_per_gpu)
+            [images1, images2] = manager.get_image_fixed_feat_batch(feat, num_img_pair)
+
+            # (2) Input PH images
+            [classification_loss, _, _, summary] = classifier_train(images1, images2, feat)
+
+            cls_train_writer.add_summary(summary, cls_train_i)
+
+        # Here we don't save classifier network since every time we need to start from initial variable.
+        # (3) Check accuracy and save the result
 
 
 
