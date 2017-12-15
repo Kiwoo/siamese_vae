@@ -1,6 +1,7 @@
 import numpy as np
 import os.path as osp
 import random
+from misc_util import warn
 
 class DataManager(object):
 	def __init__(self, img_dir, batch_size = 64):
@@ -50,7 +51,8 @@ class DataManager(object):
         # num_img_pair = L * num_gpus * batch_per_gpu
         # feat = np.random.randint(manager.latents_sizes-1, num_gpus * batch_per_gpu)
 
-		images = []
+		images1 = []
+		images2 = []
 		feature = np.zeros(len(self.latents_sizes)-1)
 
 		L = num_img_pair / len(feats)
@@ -60,16 +62,25 @@ class DataManager(object):
 					feature[i] = np.random.randint(self.latents_sizes[i+1])
 				if l % 2 == 0:
 					fixed_feat_value = feature[feat]
-				if l % 2 == 1:
-					feature[feat] = fixed_feat_value					
-				images.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4]))
-		return images
+				elif l % 2 == 1:
+					feature[feat] = fixed_feat_value
+
+				if l % 2 == 0:
+					# warn("features: {}".format(feature))
+					images1.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4]))
+				elif l % 2 == 1:
+					images2.append(self.get_image(feature[0], feature[1], feature[2], feature[3], feature[4]))
+
+		return images1, images2
 
 
 	def get_image(self, shape=0, scale=0, orientation=0, x=0, y=0):
 		latents = [0, shape, scale, orientation, x, y]
 		index = np.dot(latents, self.latents_bases).astype(int)
-		return self.get_images([index])[0]
+		img = self.imgs[index]
+		img = np.expand_dims(img, axis = 2)
+		return img
+		# return self.get_images([index])[0]
 
 	def get_images_single(self, indices):
 		images = []

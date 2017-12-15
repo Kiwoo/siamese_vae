@@ -10,7 +10,7 @@ class mymodel(object):
 			self._init(*args, **kwargs)
 			self.scope = tf.get_variable_scope().name
 
-	def _init(self, img1, img2, img_shape, latent_dim, disentangled_feat, mode, loss_weight, feat_cls, feat_size, L, batch_per_gpu):
+	def _init(self, img1, img2, img_shape, latent_dim, disentangled_feat, mode, loss_weight, feat_cls, feat_size, cls_L, cls_batch_per_gpu):
 
 		# (1) batch size
 		sequence_length = None
@@ -97,7 +97,7 @@ class mymodel(object):
 
 		# (12-1) Add Classifier net and C.E. loss of softmax for classifier.
 
-		pred_feat_cls = self.classifier_net(latent_z1, latent_z2, feat_size, latent_dim, L, batch_per_gpu)
+		pred_feat_cls = self.classifier_net(latent_z1, latent_z2, feat_size, latent_dim, cls_L, cls_batch_per_gpu)
 		feat_cls = tf.one_hot(indices = feat_cls, depth = feat_size)
 		self.cls_loss = tf.nn.softmax_cross_entropy_with_logits(labels=feat_cls, logits=pred_feat_cls)
 
@@ -106,12 +106,12 @@ class mymodel(object):
 		self.vaeloss = loss_weight['siam']*self.siam_loss + loss_weight['kl']*self.kl_loss1 + loss_weight['kl']*self.kl_loss2 + self.reconst_error1 + self.reconst_error2
 
 
-	def classifier_net(self, z1, z2, feat_size, latent_dim, L, batch_per_gpu):
+	def classifier_net(self, z1, z2, feat_size, latent_dim, cls_L, cls_batch_per_gpu):
 		with tf.variable_scope("classifier") as scope:		
-			z1 = tf.reshape(z1, (-1, batch_per_gpu, latent_dim))
-			z2 = tf.reshape(z2, (-1, batch_per_gpu, latent_dim))
+			z1 = tf.reshape(z1, (cls_batch_per_gpu, -1, latent_dim))
+			z2 = tf.reshape(z2, (cls_batch_per_gpu, -1, latent_dim))
 			warn("z1: {}".format(np.shape(z1)))
-			z_diff = U.sum(z1-z2, axis = 1) / L
+			z_diff = U.sum(z1-z2, axis = 1) / cls_L
 			warn("z_diff: {}".format(np.shape(z_diff)))
 			x = U.dense(z_diff, feat_size, 'cls_fc1', U.normc_initializer(1.0))
 		return x

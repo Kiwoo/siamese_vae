@@ -266,7 +266,7 @@ def mgpu_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfi
 
            
 
-def mgpu_classifier_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
+def mgpu_classifier_train_net(models, num_gpus, cls_batch_per_gpu, cls_L, mode, img_dir, dataset, chkfile_name, logfile_name, validatefile_name, entangled_feat, max_epoch = 300, check_every_n = 500, loss_check_n = 10, save_model_freq = 5, batch_size = 512, lr = 0.001):
     img1 = U.get_placeholder_cached(name="img1")
     img2 = U.get_placeholder_cached(name="img2")
 
@@ -404,19 +404,21 @@ def mgpu_classifier_train_net(models, num_gpus, mode, img_dir, dataset, chkfile_
 
     cls_train_iter = 10000
     for cls_train_i in range(cls_train_iter):
-        warn("Train:{}".format(cls_train_i))
+        # warn("Train:{}".format(cls_train_i))
         if dataset == 'dsprites':
             # At every epoch, train classifier and check result
             # (1) Load images
-            L = 10
-            batch_per_gpu = 5
-            num_img_pair = L * num_gpus * batch_per_gpu
-            warn("{} {} {}".format(len(manager.latents_sizes)-1, num_gpus, batch_per_gpu))
-            feat = np.random.randint(len(manager.latents_sizes)-1, size = num_gpus * batch_per_gpu)
+            num_img_pair = cls_L * num_gpus * cls_batch_per_gpu
+            # warn("{} {} {}".format(len(manager.latents_sizes)-1, num_gpus, cls_batch_per_gpu))
+            feat = np.random.randint(len(manager.latents_sizes)-1, size = num_gpus * cls_batch_per_gpu)
             [images1, images2] = manager.get_image_fixed_feat_batch(feat, num_img_pair)
+
+            # warn("images shape:{}".format(np.shape(images1)))
 
             # (2) Input PH images
             [classification_loss, _, _, summary] = classifier_train(images1, images2, feat)
+            if cls_train_i % 100 == 0:
+                warn("cls loss {}: {}".format(cls_train_i, classification_loss))
 
             cls_train_writer.add_summary(summary, cls_train_i)
 
