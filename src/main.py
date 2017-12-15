@@ -74,8 +74,8 @@ def main():
         lr = 0.0001
     elif dataset == 'dsprites':
         latent_dim = 10
-        loss_weight = {'siam': 1.0, 'kl': 4.0}
-        batch_size = 64
+        loss_weight = {'siam': 1.0, 'kl': 1.0}
+        batch_size = 1024
         max_epoch = 300
         lr = 0.001
         feat_size = 5 # shape, rotation, size, x, y => Don't know why there are only 4 features in paper p6. Need to check more about it.
